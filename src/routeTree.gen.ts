@@ -10,12 +10,21 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PaketRouteImport } from './routes/paket'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TryoutSesiIdRouteImport } from './routes/tryout.$sesiId'
+import { Route as HasilSesiIdRouteImport } from './routes/hasil.$sesiId'
+import { Route as BayarPaketIdRouteImport } from './routes/bayar.$paketId'
 
 const PaketRoute = PaketRouteImport.update({
   id: '/paket',
   path: '/paket',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -28,35 +37,88 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TryoutSesiIdRoute = TryoutSesiIdRouteImport.update({
+  id: '/tryout/$sesiId',
+  path: '/tryout/$sesiId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HasilSesiIdRoute = HasilSesiIdRouteImport.update({
+  id: '/hasil/$sesiId',
+  path: '/hasil/$sesiId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BayarPaketIdRoute = BayarPaketIdRouteImport.update({
+  id: '/bayar/$paketId',
+  path: '/bayar/$paketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/paket': typeof PaketRoute
+  '/bayar/$paketId': typeof BayarPaketIdRoute
+  '/hasil/$sesiId': typeof HasilSesiIdRoute
+  '/tryout/$sesiId': typeof TryoutSesiIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/paket': typeof PaketRoute
+  '/bayar/$paketId': typeof BayarPaketIdRoute
+  '/hasil/$sesiId': typeof HasilSesiIdRoute
+  '/tryout/$sesiId': typeof TryoutSesiIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
   '/paket': typeof PaketRoute
+  '/bayar/$paketId': typeof BayarPaketIdRoute
+  '/hasil/$sesiId': typeof HasilSesiIdRoute
+  '/tryout/$sesiId': typeof TryoutSesiIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/paket'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/paket'
+    | '/bayar/$paketId'
+    | '/hasil/$sesiId'
+    | '/tryout/$sesiId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/paket'
-  id: '__root__' | '/' | '/auth' | '/paket'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/paket'
+    | '/bayar/$paketId'
+    | '/hasil/$sesiId'
+    | '/tryout/$sesiId'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/paket'
+    | '/bayar/$paketId'
+    | '/hasil/$sesiId'
+    | '/tryout/$sesiId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRoute
   PaketRoute: typeof PaketRoute
+  BayarPaketIdRoute: typeof BayarPaketIdRoute
+  HasilSesiIdRoute: typeof HasilSesiIdRoute
+  TryoutSesiIdRoute: typeof TryoutSesiIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -66,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/paket'
       fullPath: '/paket'
       preLoaderRoute: typeof PaketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -82,14 +151,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tryout/$sesiId': {
+      id: '/tryout/$sesiId'
+      path: '/tryout/$sesiId'
+      fullPath: '/tryout/$sesiId'
+      preLoaderRoute: typeof TryoutSesiIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hasil/$sesiId': {
+      id: '/hasil/$sesiId'
+      path: '/hasil/$sesiId'
+      fullPath: '/hasil/$sesiId'
+      preLoaderRoute: typeof HasilSesiIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bayar/$paketId': {
+      id: '/bayar/$paketId'
+      path: '/bayar/$paketId'
+      fullPath: '/bayar/$paketId'
+      preLoaderRoute: typeof BayarPaketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRoute,
   PaketRoute: PaketRoute,
+  BayarPaketIdRoute: BayarPaketIdRoute,
+  HasilSesiIdRoute: HasilSesiIdRoute,
+  TryoutSesiIdRoute: TryoutSesiIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}

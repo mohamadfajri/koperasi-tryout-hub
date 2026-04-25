@@ -1,0 +1,451 @@
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth-context";
+import { SiteHeader, SiteFooter } from "@/components/site-chrome";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Plus, Pencil, Trash2, Eye, CheckCircle2, XCircle, Users, Package, FileQuestion, Receipt } from "lucide-react";
+import { toast } from "sonner";
+import { formatDate, formatRupiah } from "@/lib/format";
+
+export const Route = createFileRoute("/admin")({
+  head: () => ({ meta: [{ title: "Panel Admin — CBT Koperasi" }] }),
+  component: AdminPage,
+});
+
+interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; is_gratis: boolean; is_aktif: boolean; }
+interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; }
+interface Bayar { id: string; user_id: string; paket_id: string; nominal: number; bukti_url: string | null; status: "pending" | "approved" | "rejected"; catatan_admin: string | null; created_at: string; profiles: { full_name: string | null; email: string | null } | null; paket_tryout: { judul: string } | null; }
+interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
+
+function AdminPage() {
+  const { user, role, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) { navigate({ to: "/auth", search: { mode: "login", redirect: "/admin" } }); return; }
+    if (role !== "admin") { toast.error("Akses ditolak. Hanya untuk admin."); navigate({ to: "/dashboard" }); }
+  }, [authLoading, user, role]);
+
+  if (authLoading || role !== "admin") {
+    return <div className="flex min-h-screen items-center justify-center"><Loader2 className="size-6 animate-spin text-primary" /></div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <SiteHeader />
+      <main className="container mx-auto px-4 py-10 sm:px-6">
+        <h1 className="font-serif text-3xl font-bold">Panel Admin</h1>
+        <p className="mb-8 text-muted-foreground">Kelola paket, soal, monitoring user, dan verifikasi pembayaran.</p>
+
+        <Tabs defaultValue="pembayaran">
+          <TabsList className="mb-6 grid w-full grid-cols-2 sm:grid-cols-4">
+            <TabsTrigger value="pembayaran"><Receipt className="mr-2 size-4" />Pembayaran</TabsTrigger>
+            <TabsTrigger value="paket"><Package className="mr-2 size-4" />Paket</TabsTrigger>
+            <TabsTrigger value="soal"><FileQuestion className="mr-2 size-4" />Soal</TabsTrigger>
+            <TabsTrigger value="user"><Users className="mr-2 size-4" />User</TabsTrigger>
+          </TabsList>
+          <TabsContent value="pembayaran"><PembayaranTab /></TabsContent>
+          <TabsContent value="paket"><PaketTab /></TabsContent>
+          <TabsContent value="soal"><SoalTab /></TabsContent>
+          <TabsContent value="user"><UserTab /></TabsContent>
+        </Tabs>
+      </main>
+      <SiteFooter />
+    </div>
+  );
+}
+
+/* ============ PEMBAYARAN ============ */
+function PembayaranTab() {
+  const { user } = useAuth();
+  const [list, setList] = useState<Bayar[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Bayar | null>(null);
+  const [catatan, setCatatan] = useState("");
+
+  const load = async () => {
+    setLoading(true);
+    let q = supabase.from("pembayaran")
+      .select("*, profiles(full_name, email), paket_tryout(judul)")
+      .order("created_at", { ascending: false });
+    if (filter !== "all") q = q.eq("status", filter);
+    const { data } = await q;
+    setList((data as any[]) ?? []);
+    setLoading(false);
+  };
+  useEffect(() => { void load(); }, [filter]);
+
+  const previewBukti = async (path: string) => {
+    const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 300);
+    if (data?.signedUrl) setPreviewUrl(data.signedUrl);
+  };
+
+  const decide = async (status: "approved" | "rejected") => {
+    if (!selected || !user) return;
+    const { error } = await supabase.from("pembayaran").update({
+      status, catatan_admin: catatan || null, verified_by: user.id, verified_at: new Date().toISOString(),
+    }).eq("id", selected.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`Pembayaran ${status === "approved" ? "disetujui" : "ditolak"}.`);
+    setSelected(null); setCatatan(""); void load();
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between gap-4">
+        <CardTitle className="text-base">Verifikasi Pembayaran</CardTitle>
+        <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pending">Menunggu</SelectItem>
+            <SelectItem value="approved">Disetujui</SelectItem>
+            <SelectItem value="rejected">Ditolak</SelectItem>
+            <SelectItem value="all">Semua</SelectItem>
+          </SelectContent>
+        </Select>
+      </CardHeader>
+      <CardContent>
+        {loading ? <Loader2 className="mx-auto size-5 animate-spin" /> : list.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada data.</p>
+        ) : (
+          <div className="space-y-2">
+            {list.map((b) => (
+              <div key={b.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold">{b.profiles?.full_name || b.profiles?.email}</div>
+                  <div className="text-xs text-muted-foreground">{b.paket_tryout?.judul} · {formatRupiah(b.nominal)} · {formatDate(b.created_at)}</div>
+                  {b.catatan_admin && <div className="text-xs text-muted-foreground">Catatan: {b.catatan_admin}</div>}
+                </div>
+                <Badge variant="outline" className={
+                  b.status === "approved" ? "border-success text-success"
+                  : b.status === "rejected" ? "border-destructive text-destructive"
+                  : "border-warning text-warning-foreground"
+                }>{b.status}</Badge>
+                {b.bukti_url && (
+                  <Button size="sm" variant="outline" onClick={() => previewBukti(b.bukti_url!)}>
+                    <Eye className="mr-1 size-4" />Bukti
+                  </Button>
+                )}
+                {b.status === "pending" && (
+                  <Button size="sm" onClick={() => { setSelected(b); setCatatan(""); }}>Verifikasi</Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Bukti Pembayaran</DialogTitle></DialogHeader>
+          {previewUrl && <img src={previewUrl} alt="Bukti" className="mx-auto max-h-[70vh] rounded-lg" />}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verifikasi Pembayaran</DialogTitle>
+            <DialogDescription>
+              {selected?.profiles?.full_name} · {selected?.paket_tryout?.judul} · {selected && formatRupiah(selected.nominal)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label>Catatan (opsional)</Label>
+            <Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Misal: terverifikasi via mutasi rekening" />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" className="text-destructive" onClick={() => decide("rejected")}>
+              <XCircle className="mr-2 size-4" />Tolak
+            </Button>
+            <Button onClick={() => decide("approved")}>
+              <CheckCircle2 className="mr-2 size-4" />Setujui
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ============ PAKET ============ */
+function PaketTab() {
+  const [list, setList] = useState<Paket[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Paket | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("paket_tryout").select("*").order("created_at", { ascending: false });
+    setList((data as Paket[]) ?? []); setLoading(false);
+  };
+  useEffect(() => { void load(); }, []);
+
+  const save = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      judul: String(fd.get("judul") || "").trim(),
+      deskripsi: String(fd.get("deskripsi") || ""),
+      harga: Number(fd.get("harga") || 0),
+      durasi_menit: Number(fd.get("durasi") || 60),
+      jumlah_soal: Number(fd.get("jumlah") || 50),
+      is_gratis: fd.get("is_gratis") === "on",
+      is_aktif: fd.get("is_aktif") === "on",
+    };
+    if (!payload.judul) { toast.error("Judul wajib diisi"); return; }
+    const res = editing
+      ? await supabase.from("paket_tryout").update(payload).eq("id", editing.id)
+      : await supabase.from("paket_tryout").insert(payload);
+    if (res.error) { toast.error(res.error.message); return; }
+    toast.success("Tersimpan"); setOpen(false); setEditing(null); void load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Hapus paket ini? Semua soal & sesi terkait juga akan terhapus.")) return;
+    const { error } = await supabase.from("paket_tryout").delete().eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Paket dihapus"); void load(); }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="text-base">Daftar Paket</CardTitle>
+        <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
+          <Plus className="mr-1 size-4" />Tambah Paket
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {loading ? <Loader2 className="mx-auto size-5 animate-spin" /> : (
+          <div className="space-y-2">
+            {list.map((p) => (
+              <div key={p.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="font-semibold">{p.judul}</div>
+                    {p.is_gratis && <Badge className="bg-accent text-accent-foreground">GRATIS</Badge>}
+                    {!p.is_aktif && <Badge variant="outline">nonaktif</Badge>}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{formatRupiah(p.harga)} · {p.durasi_menit} menit · {p.jumlah_soal} soal</div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => { setEditing(p); setOpen(true); }}>
+                  <Pencil className="mr-1 size-4" />Edit
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(p.id)}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit Paket" : "Paket Baru"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={save} className="space-y-3">
+            <div className="space-y-1.5"><Label>Judul</Label><Input name="judul" required defaultValue={editing?.judul} /></div>
+            <div className="space-y-1.5"><Label>Deskripsi</Label><Textarea name="deskripsi" defaultValue={editing?.deskripsi ?? ""} /></div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5"><Label>Harga (Rp)</Label><Input name="harga" type="number" min="0" defaultValue={editing?.harga ?? 0} /></div>
+              <div className="space-y-1.5"><Label>Durasi (menit)</Label><Input name="durasi" type="number" min="1" defaultValue={editing?.durasi_menit ?? 60} /></div>
+              <div className="space-y-1.5"><Label>Jumlah soal</Label><Input name="jumlah" type="number" min="1" defaultValue={editing?.jumlah_soal ?? 50} /></div>
+            </div>
+            <div className="flex items-center gap-6">
+              <label className="flex items-center gap-2 text-sm"><Switch name="is_gratis" defaultChecked={editing?.is_gratis ?? false} />Gratis</label>
+              <label className="flex items-center gap-2 text-sm"><Switch name="is_aktif" defaultChecked={editing?.is_aktif ?? true} />Aktif</label>
+            </div>
+            <DialogFooter><Button type="submit">Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ============ SOAL ============ */
+function SoalTab() {
+  const [paket, setPaket] = useState<Paket[]>([]);
+  const [paketId, setPaketId] = useState<string>("");
+  const [list, setList] = useState<Soal[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [editing, setEditing] = useState<Soal | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    supabase.from("paket_tryout").select("*").order("judul").then(({ data }) => {
+      setPaket((data as Paket[]) ?? []);
+      if (data && data.length > 0 && !paketId) setPaketId(data[0].id);
+    });
+  }, []);
+
+  const load = async () => {
+    if (!paketId) return;
+    setLoading(true);
+    const { data } = await supabase.from("soal").select("*").eq("paket_id", paketId).order("nomor");
+    setList((data as Soal[]) ?? []); setLoading(false);
+  };
+  useEffect(() => { void load(); }, [paketId]);
+
+  const save = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      paket_id: paketId,
+      nomor: Number(fd.get("nomor") || 1),
+      pertanyaan: String(fd.get("pertanyaan") || "").trim(),
+      opsi_a: String(fd.get("a") || "").trim(),
+      opsi_b: String(fd.get("b") || "").trim(),
+      opsi_c: String(fd.get("c") || "").trim(),
+      opsi_d: String(fd.get("d") || "").trim(),
+      opsi_e: String(fd.get("e") || "").trim() || null,
+      jawaban_benar: String(fd.get("jawaban") || "A"),
+      pembahasan: String(fd.get("pembahasan") || "") || null,
+    };
+    const res = editing
+      ? await supabase.from("soal").update(payload).eq("id", editing.id)
+      : await supabase.from("soal").insert(payload);
+    if (res.error) { toast.error(res.error.message); return; }
+    toast.success("Tersimpan"); setOpen(false); setEditing(null); void load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Hapus soal ini?")) return;
+    const { error } = await supabase.from("soal").delete().eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Soal dihapus"); void load(); }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Bank Soal</CardTitle>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Select value={paketId} onValueChange={setPaketId}>
+            <SelectTrigger className="w-72"><SelectValue placeholder="Pilih paket" /></SelectTrigger>
+            <SelectContent>
+              {paket.map((p) => <SelectItem key={p.id} value={p.id}>{p.judul}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button size="sm" disabled={!paketId} onClick={() => {
+            setEditing(null); setOpen(true);
+          }}><Plus className="mr-1 size-4" />Tambah Soal</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? <Loader2 className="mx-auto size-5 animate-spin" /> : list.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Belum ada soal di paket ini.</p>
+        ) : (
+          <div className="space-y-2">
+            {list.map((s) => (
+              <div key={s.id} className="flex items-start gap-3 rounded-lg border border-border p-3">
+                <div className="font-bold text-primary">#{s.nomor}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-2 text-sm">{s.pertanyaan}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Jawaban benar: <b>{s.jawaban_benar}</b></div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => { setEditing(s); setOpen(true); }}>
+                  <Pencil className="size-4" />
+                </Button>
+                <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(s.id)}>
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{editing ? `Edit Soal #${editing.nomor}` : "Soal Baru"}</DialogTitle></DialogHeader>
+          <form onSubmit={save} className="space-y-3">
+            <div className="grid grid-cols-4 gap-3">
+              <div className="space-y-1.5 col-span-1"><Label>Nomor</Label><Input name="nomor" type="number" min="1" required defaultValue={editing?.nomor ?? (list.length + 1)} /></div>
+              <div className="space-y-1.5 col-span-3"><Label>Jawaban Benar</Label>
+                <Select name="jawaban" defaultValue={editing?.jawaban_benar ?? "A"}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{["A","B","C","D","E"].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1.5"><Label>Pertanyaan</Label><Textarea name="pertanyaan" rows={3} required defaultValue={editing?.pertanyaan} /></div>
+            {(["a","b","c","d","e"] as const).map((k) => (
+              <div key={k} className="space-y-1.5"><Label>Opsi {k.toUpperCase()}{k === "e" && " (opsional)"}</Label>
+                <Input name={k} required={k !== "e"} defaultValue={(editing as any)?.[`opsi_${k}`] ?? ""} />
+              </div>
+            ))}
+            <div className="space-y-1.5"><Label>Pembahasan (opsional)</Label><Textarea name="pembahasan" defaultValue={editing?.pembahasan ?? ""} /></div>
+            <DialogFooter><Button type="submit">Simpan</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ============ USER ============ */
+function UserTab() {
+  const [list, setList] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { void load(); }, []);
+  const load = async () => {
+    setLoading(true);
+    const { data: profs } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data: sesi } = await supabase.from("sesi_tryout").select("user_id");
+    const counts = new Map<string, number>();
+    for (const s of sesi ?? []) counts.set(s.user_id, (counts.get(s.user_id) ?? 0) + 1);
+    setList((profs ?? []).map((p: any) => ({ ...p, sesi_count: counts.get(p.id) ?? 0 })));
+    setLoading(false);
+  };
+
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">Daftar Pengguna ({list.length})</CardTitle></CardHeader>
+      <CardContent>
+        {loading ? <Loader2 className="mx-auto size-5 animate-spin" /> : list.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Belum ada pengguna terdaftar.</p>
+        ) : (
+          <div className="space-y-2">
+            {list.map((u) => (
+              <div key={u.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary-soft font-bold text-primary">
+                  {(u.full_name || u.email || "?").charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold">{u.full_name || "(tanpa nama)"}</div>
+                  <div className="text-xs text-muted-foreground">{u.email} · {u.phone || "—"}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-bold text-primary">{u.sesi_count}</div>
+                  <div className="text-xs text-muted-foreground">tryout</div>
+                </div>
+                <div className="text-xs text-muted-foreground">{formatDate(u.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

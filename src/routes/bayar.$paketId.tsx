@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
@@ -10,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Upload, QrCode, Info } from "lucide-react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/format";
-import qrisImg from "@/assets/qris-sample.png";
 
 export const Route = createFileRoute("/bayar/$paketId")({
   head: () => ({ meta: [{ title: "Pembayaran QRIS — CBT Koperasi" }] }),

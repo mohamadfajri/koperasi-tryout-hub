@@ -1,7 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, ClipboardCheck, ShieldCheck, Sparkles, Timer, Users } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, Gift, ShieldCheck, Sparkles, Timer, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatRupiah } from "@/lib/format";
+import heroPeserta from "@/assets/hero-peserta.png";
+
+interface PaketPreview {
+  id: string;
+  judul: string;
+  deskripsi: string | null;
+  harga: number;
+  is_gratis: boolean;
+  jumlah_soal: number;
+  durasi_menit: number;
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({

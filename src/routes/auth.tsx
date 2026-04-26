@@ -12,9 +12,9 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    mode: (s.mode as string) === "signup" ? ("signup" as const) : ("login" as const),
-    redirect: typeof s.redirect === "string" ? s.redirect : "/dashboard",
+  validateSearch: (s: Record<string, unknown>): { mode?: "login" | "signup"; redirect?: string } => ({
+    mode: (s.mode as string) === "signup" ? "signup" : "login",
+    redirect: typeof s.redirect === "string" ? s.redirect : undefined,
   }),
   head: () => ({ meta: [{ title: "Masuk / Daftar — CBT Koperasi" }] }),
   component: AuthPage,
@@ -33,7 +33,9 @@ const loginSchema = z.object({
 });
 
 function AuthPage() {
-  const { mode, redirect } = Route.useSearch();
+  const search = Route.useSearch();
+  const mode = search.mode ?? "login";
+  const redirect = search.redirect ?? "/dashboard";
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useState<"login" | "signup">(mode);

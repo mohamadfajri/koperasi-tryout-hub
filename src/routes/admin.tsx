@@ -85,12 +85,27 @@ function PembayaranTab() {
   const load = async () => {
     setLoading(true);
     let q = supabase.from("pembayaran")
-      .select("*, profiles(full_name, email), paket_tryout(judul)")
+      .select("*, paket_tryout(judul)")
       .order("created_at", { ascending: false });
     if (filter !== "all") q = q.eq("status", filter);
     const { data, error } = await q;
     if (error) toast.error("Gagal memuat: " + error.message);
     const rows = (data as any[]) ?? [];
+
+    // Fetch profiles separately (no FK relationship in schema cache)
+    const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean)));
+    if (userIds.length > 0) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", userIds);
+      const profMap = new Map((profs ?? []).map((p) => [p.id, p]));
+      rows.forEach((r) => {
+        const p = profMap.get(r.user_id);
+        r.profiles = p ? { full_name: p.full_name, email: p.email } : null;
+      });
+    }
+
     setList(rows);
     setLoading(false);
 

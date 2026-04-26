@@ -76,9 +76,11 @@ function PembayaranTab() {
   const [list, setList] = useState<Bayar[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selected, setSelected] = useState<Bayar | null>(null);
   const [catatan, setCatatan] = useState("");
+  const [acting, setActing] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -86,23 +88,36 @@ function PembayaranTab() {
       .select("*, profiles(full_name, email), paket_tryout(judul)")
       .order("created_at", { ascending: false });
     if (filter !== "all") q = q.eq("status", filter);
-    const { data } = await q;
-    setList((data as any[]) ?? []);
+    const { data, error } = await q;
+    if (error) toast.error("Gagal memuat: " + error.message);
+    const rows = (data as any[]) ?? [];
+    setList(rows);
     setLoading(false);
+
+    // Pre-generate signed URLs for thumbnails
+    const map: Record<string, string> = {};
+    await Promise.all(
+      rows
+        .filter((r) => r.bukti_url)
+        .map(async (r) => {
+          const { data: signed } = await supabase.storage
+            .from("payment-proofs")
+            .createSignedUrl(r.bukti_url, 600);
+          if (signed?.signedUrl) map[r.id] = signed.signedUrl;
+        })
+    );
+    setThumbs(map);
   };
   useEffect(() => { void load(); }, [filter]);
 
-  const previewBukti = async (path: string) => {
-    const { data } = await supabase.storage.from("payment-proofs").createSignedUrl(path, 300);
-    if (data?.signedUrl) setPreviewUrl(data.signedUrl);
-  };
-
   const decide = async (status: "approved" | "rejected") => {
     if (!selected || !user) return;
+    setActing(true);
     const { error } = await supabase.from("pembayaran").update({
       status, catatan_admin: catatan || null, verified_by: user.id, verified_at: new Date().toISOString(),
     }).eq("id", selected.id);
-    if (error) { toast.error(error.message); return; }
+    setActing(false);
+    if (error) { toast.error("Gagal: " + error.message); return; }
     toast.success(`Pembayaran ${status === "approved" ? "disetujui" : "ditolak"}.`);
     setSelected(null); setCatatan(""); void load();
   };
@@ -125,27 +140,55 @@ function PembayaranTab() {
         {loading ? <Loader2 className="mx-auto size-5 animate-spin" /> : list.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Tidak ada data.</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {list.map((b) => (
-              <div key={b.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
+              <div key={b.id} className="flex flex-wrap items-start gap-3 rounded-lg border border-border p-3">
+                {b.bukti_url ? (
+                  thumbs[b.id] ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewUrl(thumbs[b.id])}
+                      className="size-20 shrink-0 overflow-hidden rounded-md border border-border bg-muted"
+                      title="Klik untuk perbesar"
+                    >
+                      <img src={thumbs[b.id]} alt="Bukti" className="size-full object-cover" />
+                    </button>
+                  ) : (
+                    <div className="flex size-20 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
+                      <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )
+                ) : (
+                  <div className="flex size-20 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-xs text-muted-foreground">
+                    Tanpa bukti
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold">{b.profiles?.full_name || b.profiles?.email}</div>
-                  <div className="text-xs text-muted-foreground">{b.paket_tryout?.judul} · {formatRupiah(b.nominal)} · {formatDate(b.created_at)}</div>
-                  {b.catatan_admin && <div className="text-xs text-muted-foreground">Catatan: {b.catatan_admin}</div>}
+                  <div className="font-semibold">{b.profiles?.full_name || b.profiles?.email || "(tanpa nama)"}</div>
+                  <div className="text-xs text-muted-foreground">{b.profiles?.email}</div>
+                  <div className="mt-1 text-sm">{b.paket_tryout?.judul} · <b>{formatRupiah(b.nominal)}</b></div>
+                  <div className="text-xs text-muted-foreground">{formatDate(b.created_at)}</div>
+                  {b.catatan_admin && <div className="mt-1 text-xs italic text-muted-foreground">Catatan: {b.catatan_admin}</div>}
                 </div>
-                <Badge variant="outline" className={
-                  b.status === "approved" ? "border-success text-success"
-                  : b.status === "rejected" ? "border-destructive text-destructive"
-                  : "border-warning text-warning-foreground"
-                }>{b.status}</Badge>
-                {b.bukti_url && (
-                  <Button size="sm" variant="outline" onClick={() => previewBukti(b.bukti_url!)}>
-                    <Eye className="mr-1 size-4" />Bukti
-                  </Button>
-                )}
-                {b.status === "pending" && (
-                  <Button size="sm" onClick={() => { setSelected(b); setCatatan(""); }}>Verifikasi</Button>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                  <Badge variant="outline" className={
+                    b.status === "approved" ? "border-success text-success"
+                    : b.status === "rejected" ? "border-destructive text-destructive"
+                    : "border-warning text-warning-foreground"
+                  }>{b.status === "pending" ? "menunggu" : b.status === "approved" ? "disetujui" : "ditolak"}</Badge>
+                  <div className="flex gap-2">
+                    {b.bukti_url && thumbs[b.id] && (
+                      <Button size="sm" variant="outline" onClick={() => setPreviewUrl(thumbs[b.id])}>
+                        <Eye className="mr-1 size-4" />Lihat
+                      </Button>
+                    )}
+                    {b.status === "pending" && (
+                      <Button size="sm" onClick={() => { setSelected(b); setCatatan(""); }}>
+                        <CheckCircle2 className="mr-1 size-4" />Verifikasi
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -159,24 +202,28 @@ function PembayaranTab() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+      <Dialog open={!!selected} onOpenChange={(o) => { if (!o) { setSelected(null); setCatatan(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Verifikasi Pembayaran</DialogTitle>
             <DialogDescription>
-              {selected?.profiles?.full_name} · {selected?.paket_tryout?.judul} · {selected && formatRupiah(selected.nominal)}
+              {selected?.profiles?.full_name || selected?.profiles?.email} · {selected?.paket_tryout?.judul} · {selected && formatRupiah(selected.nominal)}
             </DialogDescription>
           </DialogHeader>
+          {selected?.bukti_url && thumbs[selected.id] && (
+            <img src={thumbs[selected.id]} alt="Bukti" className="mx-auto max-h-64 rounded-lg border border-border" />
+          )}
           <div className="space-y-2">
             <Label>Catatan (opsional)</Label>
             <Textarea value={catatan} onChange={(e) => setCatatan(e.target.value)} placeholder="Misal: terverifikasi via mutasi rekening" />
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" className="text-destructive" onClick={() => decide("rejected")}>
+            <Button variant="outline" className="text-destructive" disabled={acting} onClick={() => decide("rejected")}>
               <XCircle className="mr-2 size-4" />Tolak
             </Button>
-            <Button onClick={() => decide("approved")}>
-              <CheckCircle2 className="mr-2 size-4" />Setujui
+            <Button disabled={acting} onClick={() => decide("approved")}>
+              {acting ? <Loader2 className="mr-2 size-4 animate-spin" /> : <CheckCircle2 className="mr-2 size-4" />}
+              Setujui
             </Button>
           </DialogFooter>
         </DialogContent>

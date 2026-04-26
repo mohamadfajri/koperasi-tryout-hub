@@ -37,6 +37,20 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const [pakets, setPakets] = useState<PaketPreview[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("paket_tryout")
+      .select("id, judul, deskripsi, harga, is_gratis, jumlah_soal, durasi_menit")
+      .eq("is_aktif", true)
+      .order("is_gratis", { ascending: false })
+      .order("harga", { ascending: true })
+      .limit(4)
+      .then(({ data }) => setPakets(data ?? []));
+  }, []);
+
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />

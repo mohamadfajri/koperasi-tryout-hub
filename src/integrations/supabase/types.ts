@@ -67,6 +67,7 @@ export type Database = {
           is_gratis: boolean
           judul: string
           jumlah_soal: number
+          max_attempts: number
           updated_at: string
         }
         Insert: {
@@ -79,6 +80,7 @@ export type Database = {
           is_gratis?: boolean
           judul: string
           jumlah_soal?: number
+          max_attempts?: number
           updated_at?: string
         }
         Update: {
@@ -91,6 +93,7 @@ export type Database = {
           is_gratis?: boolean
           judul?: string
           jumlah_soal?: number
+          max_attempts?: number
           updated_at?: string
         }
         Relationships: []

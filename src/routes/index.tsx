@@ -155,7 +155,81 @@ function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* PAKET PREVIEW - konversi langsung */}
+      <section id="paket" className="bg-muted/30">
+        <div className="container mx-auto px-4 py-16 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+              <Zap className="size-3.5" />
+              Mulai sekarang — gratis tanpa kartu kredit
+            </div>
+            <h2 className="font-serif text-3xl font-bold sm:text-4xl">Pilih Paket Tryout-mu</h2>
+            <p className="mt-3 text-muted-foreground">
+              Coba <strong className="text-foreground">paket gratis</strong> dulu, atau langsung ambil paket
+              premium untuk persiapan menyeluruh.
+            </p>
+          </div>
+
+          {pakets.length === 0 ? (
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {pakets.map((p) => (
+                <div
+                  key={p.id}
+                  className={`relative flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg ${
+                    p.is_gratis ? "border-accent/40" : "border-border"
+                  }`}
+                >
+                  {p.is_gratis && (
+                    <div className="absolute -top-3 left-5 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-accent-foreground shadow">
+                      <Gift className="size-3" />
+                      Gratis
+                    </div>
+                  )}
+                  <h3 className="font-serif text-lg font-bold leading-tight">{p.judul}</h3>
+                  {p.deskripsi && (
+                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{p.deskripsi}</p>
+                  )}
+                  <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <ClipboardCheck className="size-3.5" /> {p.jumlah_soal} soal
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Timer className="size-3.5" /> {p.durasi_menit} mnt
+                    </span>
+                  </div>
+                  <div className="mt-4 flex-1">
+                    <div className="text-2xl font-bold text-primary">
+                      {p.is_gratis ? "Gratis" : formatRupiah(p.harga)}
+                    </div>
+                  </div>
+                  <Button asChild size="sm" className="mt-4 w-full" variant={p.is_gratis ? "default" : "outline"}>
+                    <Link to="/paket">
+                      {p.is_gratis ? "Kerjakan Sekarang" : "Ambil Paket"}{" "}
+                      <ArrowRight className="ml-1 size-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 text-center">
+            <Button asChild variant="ghost" className="gap-2">
+              <Link to="/paket">
+                Lihat semua paket <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+
       <section className="bg-gradient-warm">
         <div className="container mx-auto px-4 py-16 text-center sm:px-6">
           <h2 className="font-serif text-3xl font-bold sm:text-4xl">Siap mulai tryout sekarang?</h2>

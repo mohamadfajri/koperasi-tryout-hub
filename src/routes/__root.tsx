@@ -1,8 +1,6 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/auth-context";
-
-import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
   return (
@@ -27,55 +25,9 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CBT Tryout Koperasi Desa Merah Putih" },
-      {
-        name: "description",
-        content:
-          "Platform tryout CBT online untuk Koperasi Desa Merah Putih — latihan soal, tryout gratis, dan paket premium dengan pembayaran QRIS.",
-      },
-      { name: "author", content: "Koperasi Desa Merah Putih" },
-      { property: "og:title", content: "CBT Tryout Koperasi Desa Merah Putih" },
-      { property: "og:description", content: "Online CBT platform for cooperative tryouts with QRIS payment and admin management." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "CBT Tryout Koperasi Desa Merah Putih" },
-      { name: "description", content: "Online CBT platform for cooperative tryouts with QRIS payment and admin management." },
-      { name: "twitter:description", content: "Online CBT platform for cooperative tryouts with QRIS payment and admin management." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d35f7856-99f2-419a-b747-855cbbb6968f/id-preview-ae47b157--b15889be-947e-4618-982a-52de99034f9e.lovable.app-1777194060685.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d35f7856-99f2-419a-b747-855cbbb6968f/id-preview-ae47b157--b15889be-947e-4618-982a-52de99034f9e.lovable.app-1777194060685.png" },
-    ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&family=Open+Sans:wght@400;500;600;700&display=swap",
-      },
-    ],
-  }),
-  shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
 });
-
-function RootShell({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="id">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
-}
 
 function RootComponent() {
   return (

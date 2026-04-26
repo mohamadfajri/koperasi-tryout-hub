@@ -93,27 +93,21 @@ function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="aspect-[4/3] rounded-3xl border border-border bg-gradient-to-br from-primary/15 via-card to-accent/15 p-8 shadow-xl">
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="mb-6 grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <BookOpen className="mx-auto mb-2 size-8 text-primary" />
-                    <div className="text-xs font-semibold text-foreground">Bank Soal</div>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <ClipboardCheck className="mx-auto mb-2 size-8 text-accent" />
-                    <div className="text-xs font-semibold text-foreground">Skor Otomatis</div>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <Timer className="mx-auto mb-2 size-8 text-warning" />
-                    <div className="text-xs font-semibold text-foreground">Timer Realtime</div>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <Users className="mx-auto mb-2 size-8 text-primary" />
-                    <div className="text-xs font-semibold text-foreground">Untuk Anggota</div>
-                  </div>
+            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
+              <img
+                src={heroPeserta}
+                alt="Peserta tryout Koperasi Desa Merah Putih sedang menggunakan platform CBT"
+                className="aspect-square w-full object-cover"
+                loading="eager"
+              />
+            </div>
+            <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur sm:block">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-accent" />
+                <div>
+                  <div className="text-xs font-semibold text-foreground">Sukses Tryout</div>
+                  <div className="text-[10px] text-muted-foreground">Bersama Koperasi Merah Putih</div>
                 </div>
-                <p className="font-serif text-xl font-bold text-foreground">Bersama Membangun Desa</p>
               </div>
             </div>
           </div>

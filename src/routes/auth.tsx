@@ -35,7 +35,7 @@ const loginSchema = z.object({
 function AuthPage() {
   const search = Route.useSearch();
   const mode = search.mode ?? "login";
-  const redirect = search.redirect ?? "/dashboard";
+  const redirect = search.redirect ?? "/paket";
   const navigate = useNavigate();
   const { user } = useAuth();
   const [tab, setTab] = useState<"login" | "signup">(mode);

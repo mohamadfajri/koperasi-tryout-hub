@@ -24,12 +24,16 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold">
-            M
-          </div>
+          <img
+            src="/tryoutkopdes-logo.png"
+            alt="TryoutKopdes.com"
+            className="size-10 rounded-md object-cover"
+          />
           <div className="leading-tight">
-            <div className="font-serif text-base font-bold text-foreground">Koperasi Desa</div>
-            <div className="text-xs text-muted-foreground">Merah Putih · CBT</div>
+            <div className="text-base font-extrabold tracking-tight text-foreground sm:text-lg">
+              TryoutKopdes.com
+            </div>
+            <div className="text-xs text-muted-foreground">Kopdes-CAT</div>
           </div>
         </Link>
 

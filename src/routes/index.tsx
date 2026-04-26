@@ -1,7 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, ClipboardCheck, ShieldCheck, Sparkles, Timer, Users } from "lucide-react";
+import { ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, Gift, ShieldCheck, Sparkles, Timer, Zap } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatRupiah } from "@/lib/format";
+import heroPeserta from "@/assets/hero-peserta.png";
+
+interface PaketPreview {
+  id: string;
+  judul: string;
+  deskripsi: string | null;
+  harga: number;
+  is_gratis: boolean;
+  jumlah_soal: number;
+  durasi_menit: number;
+}
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +37,20 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const [pakets, setPakets] = useState<PaketPreview[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("paket_tryout")
+      .select("id, judul, deskripsi, harga, is_gratis, jumlah_soal, durasi_menit")
+      .eq("is_aktif", true)
+      .order("is_gratis", { ascending: false })
+      .order("harga", { ascending: true })
+      .limit(4)
+      .then(({ data }) => setPakets(data ?? []));
+  }, []);
+
+
   return (
     <div className="min-h-screen bg-background">
       <SiteHeader />
@@ -65,27 +93,21 @@ function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="aspect-[4/3] rounded-3xl border border-border bg-gradient-to-br from-primary/15 via-card to-accent/15 p-8 shadow-xl">
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="mb-6 grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <BookOpen className="mx-auto mb-2 size-8 text-primary" />
-                    <div className="text-xs font-semibold text-foreground">Bank Soal</div>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <ClipboardCheck className="mx-auto mb-2 size-8 text-accent" />
-                    <div className="text-xs font-semibold text-foreground">Skor Otomatis</div>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <Timer className="mx-auto mb-2 size-8 text-warning" />
-                    <div className="text-xs font-semibold text-foreground">Timer Realtime</div>
-                  </div>
-                  <div className="rounded-2xl bg-card p-4 shadow-md">
-                    <Users className="mx-auto mb-2 size-8 text-primary" />
-                    <div className="text-xs font-semibold text-foreground">Untuk Anggota</div>
-                  </div>
+            <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
+              <img
+                src={heroPeserta}
+                alt="Peserta tryout Koperasi Desa Merah Putih sedang menggunakan platform CBT"
+                className="aspect-square w-full object-cover"
+                loading="eager"
+              />
+            </div>
+            <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-lg backdrop-blur sm:block">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5 text-accent" />
+                <div>
+                  <div className="text-xs font-semibold text-foreground">Sukses Tryout</div>
+                  <div className="text-[10px] text-muted-foreground">Bersama Koperasi Merah Putih</div>
                 </div>
-                <p className="font-serif text-xl font-bold text-foreground">Bersama Membangun Desa</p>
               </div>
             </div>
           </div>
@@ -133,7 +155,81 @@ function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* PAKET PREVIEW - konversi langsung */}
+      <section id="paket" className="bg-muted/30">
+        <div className="container mx-auto px-4 py-16 sm:px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+              <Zap className="size-3.5" />
+              Mulai sekarang — gratis tanpa kartu kredit
+            </div>
+            <h2 className="font-serif text-3xl font-bold sm:text-4xl">Pilih Paket Tryout-mu</h2>
+            <p className="mt-3 text-muted-foreground">
+              Coba <strong className="text-foreground">paket gratis</strong> dulu, atau langsung ambil paket
+              premium untuk persiapan menyeluruh.
+            </p>
+          </div>
+
+          {pakets.length === 0 ? (
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 animate-pulse rounded-2xl border border-border bg-card" />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {pakets.map((p) => (
+                <div
+                  key={p.id}
+                  className={`relative flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg ${
+                    p.is_gratis ? "border-accent/40" : "border-border"
+                  }`}
+                >
+                  {p.is_gratis && (
+                    <div className="absolute -top-3 left-5 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-accent-foreground shadow">
+                      <Gift className="size-3" />
+                      Gratis
+                    </div>
+                  )}
+                  <h3 className="font-serif text-lg font-bold leading-tight">{p.judul}</h3>
+                  {p.deskripsi && (
+                    <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{p.deskripsi}</p>
+                  )}
+                  <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <ClipboardCheck className="size-3.5" /> {p.jumlah_soal} soal
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <Timer className="size-3.5" /> {p.durasi_menit} mnt
+                    </span>
+                  </div>
+                  <div className="mt-4 flex-1">
+                    <div className="text-2xl font-bold text-primary">
+                      {p.is_gratis ? "Gratis" : formatRupiah(p.harga)}
+                    </div>
+                  </div>
+                  <Button asChild size="sm" className="mt-4 w-full" variant={p.is_gratis ? "default" : "outline"}>
+                    <Link to="/paket">
+                      {p.is_gratis ? "Kerjakan Sekarang" : "Ambil Paket"}{" "}
+                      <ArrowRight className="ml-1 size-3.5" />
+                    </Link>
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-8 text-center">
+            <Button asChild variant="ghost" className="gap-2">
+              <Link to="/paket">
+                Lihat semua paket <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+
       <section className="bg-gradient-warm">
         <div className="container mx-auto px-4 py-16 text-center sm:px-6">
           <h2 className="font-serif text-3xl font-bold sm:text-4xl">Siap mulai tryout sekarang?</h2>

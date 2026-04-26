@@ -22,6 +22,7 @@ interface Paket {
   harga: number;
   durasi_menit: number;
   jumlah_soal: number;
+  max_attempts: number;
   is_gratis: boolean;
 }
 
@@ -86,6 +87,21 @@ function PaketPage() {
     if (existing) {
       navigate({ to: "/tryout/$sesiId", params: { sesiId: existing.id } });
       return;
+    }
+    // Cek batas pengerjaan
+    const target = paket.find((p) => p.id === paketId);
+    if (target && target.max_attempts > 0) {
+      const { count } = await supabase
+        .from("sesi_tryout")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("paket_id", paketId)
+        .in("status", ["completed", "abandoned"]);
+      if ((count ?? 0) >= target.max_attempts) {
+        setActionId(null);
+        toast.error(`Batas pengerjaan tercapai (maks ${target.max_attempts}× untuk paket ini).`);
+        return;
+      }
     }
     const { data: sesi, error } = await supabase
       .from("sesi_tryout")

@@ -26,7 +26,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; is_gratis: boolean; is_aktif: boolean; }
+interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; max_attempts: number; is_gratis: boolean; is_aktif: boolean; }
 interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; }
 interface Bayar { id: string; user_id: string; paket_id: string; nominal: number; bukti_url: string | null; status: "pending" | "approved" | "rejected"; catatan_admin: string | null; created_at: string; profiles: { full_name: string | null; email: string | null } | null; paket_tryout: { judul: string } | null; }
 interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
@@ -208,6 +208,7 @@ function PaketTab() {
       harga: Number(fd.get("harga") || 0),
       durasi_menit: Number(fd.get("durasi") || 60),
       jumlah_soal: Number(fd.get("jumlah") || 50),
+      max_attempts: Number(fd.get("max_attempts") || 0),
       is_gratis: fd.get("is_gratis") === "on",
       is_aktif: fd.get("is_aktif") === "on",
     };
@@ -244,7 +245,7 @@ function PaketTab() {
                     {p.is_gratis && <Badge className="bg-accent text-accent-foreground">GRATIS</Badge>}
                     {!p.is_aktif && <Badge variant="outline">nonaktif</Badge>}
                   </div>
-                  <div className="text-xs text-muted-foreground">{formatRupiah(p.harga)} · {p.durasi_menit} menit · {p.jumlah_soal} soal</div>
+                  <div className="text-xs text-muted-foreground">{formatRupiah(p.harga)} · {p.durasi_menit} menit · {p.jumlah_soal} soal · {p.max_attempts === 0 ? "tanpa batas" : `maks ${p.max_attempts}× pengerjaan`}</div>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => { setEditing(p); setOpen(true); }}>
                   <Pencil className="mr-1 size-4" />Edit
@@ -266,11 +267,13 @@ function PaketTab() {
           <form onSubmit={save} className="space-y-3">
             <div className="space-y-1.5"><Label>Judul</Label><Input name="judul" required defaultValue={editing?.judul} /></div>
             <div className="space-y-1.5"><Label>Deskripsi</Label><Textarea name="deskripsi" defaultValue={editing?.deskripsi ?? ""} /></div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="space-y-1.5"><Label>Harga (Rp)</Label><Input name="harga" type="number" min="0" defaultValue={editing?.harga ?? 0} /></div>
               <div className="space-y-1.5"><Label>Durasi (menit)</Label><Input name="durasi" type="number" min="1" defaultValue={editing?.durasi_menit ?? 60} /></div>
               <div className="space-y-1.5"><Label>Jumlah soal</Label><Input name="jumlah" type="number" min="1" defaultValue={editing?.jumlah_soal ?? 50} /></div>
+              <div className="space-y-1.5"><Label>Batas kerja</Label><Input name="max_attempts" type="number" min="0" defaultValue={editing?.max_attempts ?? 0} title="0 = tanpa batas" /></div>
             </div>
+            <p className="text-xs text-muted-foreground">Batas kerja: isi <b>0</b> untuk tanpa batas, atau angka lain untuk membatasi berapa kali user bisa mengerjakan paket ini.</p>
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2 text-sm"><Switch name="is_gratis" defaultChecked={editing?.is_gratis ?? false} />Gratis</label>
               <label className="flex items-center gap-2 text-sm"><Switch name="is_aktif" defaultChecked={editing?.is_aktif ?? true} />Aktif</label>

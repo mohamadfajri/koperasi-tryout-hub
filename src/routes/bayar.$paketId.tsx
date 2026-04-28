@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import QRCode from "qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth-context";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
@@ -32,16 +31,6 @@ function BayarPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-
-  useEffect(() => {
-    if (!paket) return;
-    // Generate a QRIS-like payload (demo). Untuk produksi, gunakan QRIS dinamis dari payment provider.
-    const payload = `KOPDES-MERAH-PUTIH|PAKET:${paket.id}|NOMINAL:${paket.harga}|REF:${Date.now()}`;
-    QRCode.toDataURL(payload, { width: 320, margin: 2, errorCorrectionLevel: "M" })
-      .then(setQrDataUrl)
-      .catch(() => setQrDataUrl(""));
-  }, [paket]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -145,18 +134,12 @@ function BayarPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
-                <QrCode className="size-5 text-primary" /> Scan QRIS
+                <QrCode className="size-5 text-primary" /> Scan Qris (Kios Iqbal)
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="rounded-xl border border-border bg-white p-4">
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QRIS Koperasi Desa Merah Putih" className="mx-auto w-full max-w-[260px]" />
-                ) : (
-                  <div className="mx-auto flex aspect-square w-full max-w-[260px] items-center justify-center">
-                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                  </div>
-                )}
+                <img src="/qris-kios-iqbal.png" alt="QRIS Kios Iqbal" className="mx-auto w-full max-w-[260px]" />
               </div>
               <div className="mt-4 rounded-lg bg-warning/10 p-3 text-xs text-warning-foreground">
                 <div className="flex gap-2">

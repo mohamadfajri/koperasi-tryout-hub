@@ -31,6 +31,11 @@ interface PembayaranAccess {
   status: "pending" | "approved" | "rejected";
 }
 
+interface AppSettings {
+  key: string;
+  tryout_enabled: boolean;
+}
+
 function PaketPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -38,6 +43,7 @@ function PaketPage() {
   const [access, setAccess] = useState<PembayaranAccess[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [tryoutEnabled, setTryoutEnabled] = useState(true);
 
   useEffect(() => {
     void load();
@@ -45,13 +51,21 @@ function PaketPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data: pk } = await supabase
-      .from("paket_tryout")
-      .select("*")
-      .eq("is_aktif", true)
-      .order("is_gratis", { ascending: false })
-      .order("harga", { ascending: true });
+    const [{ data: pk }, { data: appSettings }] = await Promise.all([
+      supabase
+        .from("paket_tryout")
+        .select("*")
+        .eq("is_aktif", true)
+        .order("is_gratis", { ascending: false })
+        .order("harga", { ascending: true }),
+      supabase
+        .from("app_settings")
+        .select("key, tryout_enabled")
+        .eq("key", "global")
+        .maybeSingle(),
+    ]);
     setPaket(pk ?? []);
+    setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     if (user) {
       const { data: pay } = await supabase
         .from("pembayaran")
@@ -73,6 +87,10 @@ function PaketPage() {
   const startTryout = async (paketId: string) => {
     if (!user) {
       navigate({ to: "/auth", search: { mode: "login", redirect: "/paket" } });
+      return;
+    }
+    if (!tryoutEnabled) {
+      toast.error("Tryout sedang dinonaktifkan admin untuk sementara.");
       return;
     }
     setActionId(paketId);
@@ -127,6 +145,12 @@ function PaketPage() {
           </p>
         </div>
 
+        {!tryoutEnabled && (
+          <div className="mb-6 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground">
+            Tryout sedang ditutup sementara oleh admin. Anda masih bisa melihat paket, tetapi belum bisa memulai pengerjaan.
+          </div>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="size-6 animate-spin text-primary" />
@@ -179,13 +203,13 @@ function PaketPage() {
                       </div>
 
                       {acc === "free" || acc === "paid" ? (
-                        <Button onClick={() => startTryout(p.id)} disabled={actionId === p.id}>
+                        <Button onClick={() => startTryout(p.id)} disabled={actionId === p.id || !tryoutEnabled}>
                           {actionId === p.id ? (
                             <Loader2 className="mr-2 size-4 animate-spin" />
                           ) : (
                             <CheckCircle2 className="mr-2 size-4" />
                           )}
-                          Mulai Tryout
+                          {tryoutEnabled ? "Mulai Tryout" : "Tryout Ditutup"}
                         </Button>
                       ) : acc === "pending" ? (
                         <Button variant="outline" disabled>

@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          tryout_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          tryout_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          tryout_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       jawaban_user: {
         Row: {
           created_at: string

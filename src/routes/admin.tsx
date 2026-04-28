@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Pencil, Trash2, Eye, CheckCircle2, XCircle, Users, Package, FileQuestion, Receipt } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Eye, CheckCircle2, XCircle, Users, Package, FileQuestion, Receipt, Power } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, formatRupiah } from "@/lib/format";
 
@@ -30,6 +30,7 @@ interface Paket { id: string; judul: string; deskripsi: string | null; harga: nu
 interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; }
 interface Bayar { id: string; user_id: string; paket_id: string; nominal: number; bukti_url: string | null; status: "pending" | "approved" | "rejected"; catatan_admin: string | null; created_at: string; profiles: { full_name: string | null; email: string | null } | null; paket_tryout: { judul: string } | null; }
 interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
+interface AppSettings { key: string; tryout_enabled: boolean; }
 
 function AdminPage() {
   const { user, role, loading: authLoading } = useAuth();
@@ -52,6 +53,10 @@ function AdminPage() {
         <h1 className="font-serif text-3xl font-bold">Panel Admin</h1>
         <p className="mb-8 text-muted-foreground">Kelola paket, soal, monitoring user, dan verifikasi pembayaran.</p>
 
+        <div className="mb-6">
+          <TryoutToggleCard />
+        </div>
+
         <Tabs defaultValue="pembayaran">
           <TabsList className="mb-6 grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="pembayaran"><Receipt className="mr-2 size-4" />Pembayaran</TabsTrigger>
@@ -67,6 +72,90 @@ function AdminPage() {
       </main>
       <SiteFooter />
     </div>
+  );
+}
+
+function TryoutToggleCard() {
+  const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("key, tryout_enabled")
+      .eq("key", "global")
+      .maybeSingle();
+
+    if (error) {
+      toast.error("Gagal memuat pengaturan tryout: " + error.message);
+      setLoading(false);
+      return;
+    }
+
+    setSettings(data ?? { key: "global", tryout_enabled: true });
+    setLoading(false);
+  };
+
+  const toggle = async (enabled: boolean) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: "global", tryout_enabled: enabled }, { onConflict: "key" });
+
+    setSaving(false);
+
+    if (error) {
+      toast.error("Gagal memperbarui status tryout: " + error.message);
+      return;
+    }
+
+    setSettings({ key: "global", tryout_enabled: enabled });
+    toast.success(enabled ? "Tryout dibuka untuk peserta." : "Tryout ditutup sementara.");
+  };
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between gap-4">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Power className="size-4" />
+            Pengaturan Tryout
+          </CardTitle>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gunakan saklar ini untuk membuka atau menutup seluruh pengerjaan tryout bagi peserta.
+          </p>
+        </div>
+        {loading ? (
+          <Loader2 className="size-5 animate-spin text-primary" />
+        ) : (
+          <Badge variant={settings?.tryout_enabled ? "default" : "outline"}>
+            {settings?.tryout_enabled ? "Tryout ON" : "Tryout OFF"}
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-muted-foreground">
+          {settings?.tryout_enabled
+            ? "Peserta bisa memulai dan melanjutkan tryout."
+            : "Peserta tidak bisa memulai atau melanjutkan tryout sampai diaktifkan kembali."}
+        </div>
+        <label className="flex items-center gap-3 text-sm font-medium">
+          <span>{settings?.tryout_enabled ? "Aktif" : "Nonaktif"}</span>
+          <Switch
+            checked={settings?.tryout_enabled ?? true}
+            disabled={loading || saving}
+            onCheckedChange={toggle}
+          />
+          {saving && <Loader2 className="size-4 animate-spin text-primary" />}
+        </label>
+      </CardContent>
+    </Card>
   );
 }
 

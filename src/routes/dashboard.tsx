@@ -34,6 +34,11 @@ interface Bayar {
   paket_tryout: { judul: string } | null;
 }
 
+interface AppSettings {
+  key: string;
+  tryout_enabled: boolean;
+}
+
 function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -41,6 +46,7 @@ function DashboardPage() {
   const [sesi, setSesi] = useState<Sesi[]>([]);
   const [bayar, setBayar] = useState<Bayar[]>([]);
   const [profileName, setProfileName] = useState<string>("");
+  const [tryoutEnabled, setTryoutEnabled] = useState(true);
 
   useEffect(() => {
     if (authLoading) return;
@@ -53,7 +59,7 @@ function DashboardPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: prof }, { data: s }, { data: b }] = await Promise.all([
+    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }] = await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
       supabase
         .from("sesi_tryout")
@@ -65,10 +71,16 @@ function DashboardPage() {
         .select("id, paket_id, status, nominal, created_at, catatan_admin, paket_tryout(judul)")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("app_settings")
+        .select("key, tryout_enabled")
+        .eq("key", "global")
+        .maybeSingle(),
     ]);
     setProfileName(prof?.full_name ?? "");
     setSesi((s as Sesi[]) ?? []);
     setBayar((b as Bayar[]) ?? []);
+    setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     setLoading(false);
   };
 
@@ -95,6 +107,12 @@ function DashboardPage() {
           <h1 className="font-serif text-3xl font-bold">Halo, {profileName || user?.email}</h1>
           <p className="mt-1 text-muted-foreground">Pantau progress tryout dan pembayaranmu di sini.</p>
         </div>
+
+        {!tryoutEnabled && (
+          <div className="mb-6 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-foreground">
+            Tryout sedang dinonaktifkan admin. Sesi yang sedang berjalan juga tidak bisa dilanjutkan sementara.
+          </div>
+        )}
 
         {/* Stats */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
@@ -148,8 +166,10 @@ function DashboardPage() {
                       Mulai {formatDate(s.waktu_mulai)}
                     </div>
                   </div>
-                  <Button asChild size="sm">
-                    <Link to="/tryout/$sesiId" params={{ sesiId: s.id }}>Lanjutkan</Link>
+                  <Button asChild size="sm" disabled={!tryoutEnabled}>
+                    <Link to="/tryout/$sesiId" params={{ sesiId: s.id }}>
+                      {tryoutEnabled ? "Lanjutkan" : "Ditutup Sementara"}
+                    </Link>
                   </Button>
                 </div>
               ))}

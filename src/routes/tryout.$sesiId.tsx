@@ -37,6 +37,11 @@ interface Paket {
   durasi_menit: number;
 }
 
+interface AppSettings {
+  key: string;
+  tryout_enabled: boolean;
+}
+
 const OPTS: Array<"A" | "B" | "C" | "D" | "E"> = ["A", "B", "C", "D", "E"];
 
 function TryoutPage() {
@@ -51,6 +56,7 @@ function TryoutPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [remaining, setRemaining] = useState<number>(0);
+  const [tryoutEnabled, setTryoutEnabled] = useState(true);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -64,6 +70,22 @@ function TryoutPage() {
 
   const load = async () => {
     setLoading(true);
+    const { data: appSettings, error: settingsError } = await supabase
+      .from("app_settings")
+      .select("key, tryout_enabled")
+      .eq("key", "global")
+      .maybeSingle();
+    if (settingsError) {
+      toast.error("Gagal memuat pengaturan tryout");
+    }
+    const enabled = (appSettings as AppSettings | null)?.tryout_enabled ?? true;
+    setTryoutEnabled(enabled);
+    if (!enabled) {
+      toast.error("Tryout sedang dinonaktifkan admin untuk sementara.");
+      navigate({ to: "/dashboard" });
+      return;
+    }
+
     const { data: s, error: sErr } = await supabase
       .from("sesi_tryout")
       .select("*")
@@ -129,6 +151,10 @@ function TryoutPage() {
   }, [sesi, paket]);
 
   const saveAnswer = async (soalId: string, ans: string) => {
+    if (!tryoutEnabled) {
+      toast.error("Tryout sedang dinonaktifkan admin untuk sementara.");
+      return;
+    }
     setJawaban((prev) => ({ ...prev, [soalId]: ans }));
     // upsert
     await supabase
@@ -141,6 +167,11 @@ function TryoutPage() {
 
   const submitTryout = async (isAuto = false) => {
     if (submitting) return;
+    if (!tryoutEnabled) {
+      toast.error("Tryout sedang dinonaktifkan admin untuk sementara.");
+      navigate({ to: "/dashboard" });
+      return;
+    }
     setSubmitting(true);
 
     // ambil semua soal lengkap dengan jawaban benar

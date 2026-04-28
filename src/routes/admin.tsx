@@ -26,11 +26,13 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; max_attempts: number; is_gratis: boolean; is_aktif: boolean; }
+interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; max_attempts: number; is_gratis: boolean; is_aktif: boolean; execution_enabled?: boolean; }
 interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; }
 interface Bayar { id: string; user_id: string; paket_id: string; nominal: number; bukti_url: string | null; status: "pending" | "approved" | "rejected"; catatan_admin: string | null; created_at: string; profiles: { full_name: string | null; email: string | null } | null; paket_tryout: { judul: string } | null; }
 interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
 interface AppSettings { key: string; tryout_enabled: boolean; }
+
+const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
 
 function AdminPage() {
   const { user, role, loading: authLoading } = useAuth();
@@ -342,11 +344,22 @@ function PaketTab() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Paket | null>(null);
   const [open, setOpen] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("paket_tryout").select("*").order("created_at", { ascending: false });
-    setList((data as Paket[]) ?? []); setLoading(false);
+    const [{ data: paketData }, { data: settingsData }] = await Promise.all([
+      supabase.from("paket_tryout").select("*").order("created_at", { ascending: false }),
+      supabase.from("app_settings").select("key, tryout_enabled"),
+    ]);
+    const settingsMap = new Map((settingsData ?? []).map((item) => [item.key, item.tryout_enabled]));
+    setList(
+      ((paketData as Paket[]) ?? []).map((paket) => ({
+        ...paket,
+        execution_enabled: settingsMap.get(paketExecutionKey(paket.id)) ?? true,
+      })),
+    );
+    setLoading(false);
   };
   useEffect(() => { void load(); }, []);
 
@@ -377,6 +390,24 @@ function PaketTab() {
     if (error) toast.error(error.message); else { toast.success("Paket dihapus"); void load(); }
   };
 
+  const toggleExecution = async (paketId: string, enabled: boolean) => {
+    setTogglingId(paketId);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: paketExecutionKey(paketId), tryout_enabled: enabled }, { onConflict: "key" });
+    setTogglingId(null);
+    if (error) {
+      toast.error("Gagal memperbarui status pengerjaan: " + error.message);
+      return;
+    }
+    setList((prev) =>
+      prev.map((paket) =>
+        paket.id === paketId ? { ...paket, execution_enabled: enabled } : paket,
+      ),
+    );
+    toast.success(enabled ? "Pengerjaan tryout diaktifkan." : "Pengerjaan tryout dimatikan.");
+  };
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
@@ -395,9 +426,20 @@ function PaketTab() {
                     <div className="font-semibold">{p.judul}</div>
                     {p.is_gratis && <Badge className="bg-accent text-accent-foreground">GRATIS</Badge>}
                     {!p.is_aktif && <Badge variant="outline">nonaktif</Badge>}
+                    {p.is_aktif && !p.execution_enabled && <Badge variant="secondary">pengerjaan off</Badge>}
                   </div>
                   <div className="text-xs text-muted-foreground">{formatRupiah(p.harga)} · {p.durasi_menit} menit · {p.jumlah_soal} soal · {p.max_attempts === 0 ? "tanpa batas" : `maks ${p.max_attempts}× pengerjaan`}</div>
                 </div>
+                <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Pengerjaan</span>
+                  <Switch
+                    checked={p.execution_enabled ?? true}
+                    disabled={togglingId === p.id}
+                    onCheckedChange={(checked) => void toggleExecution(p.id, checked)}
+                  />
+                  <span className="font-medium">{p.execution_enabled ? "ON" : "OFF"}</span>
+                  {togglingId === p.id && <Loader2 className="size-4 animate-spin text-primary" />}
+                </label>
                 <Button size="sm" variant="outline" onClick={() => { setEditing(p); setOpen(true); }}>
                   <Pencil className="mr-1 size-4" />Edit
                 </Button>

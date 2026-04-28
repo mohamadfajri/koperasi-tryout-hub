@@ -23,6 +23,7 @@ interface Sesi {
   waktu_mulai: string;
   waktu_selesai: string | null;
   paket_tryout: { judul: string; jumlah_soal: number } | null;
+  execution_enabled?: boolean;
 }
 interface Bayar {
   id: string;
@@ -38,6 +39,8 @@ interface AppSettings {
   key: string;
   tryout_enabled: boolean;
 }
+
+const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
 
 function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -59,7 +62,7 @@ function DashboardPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }] = await Promise.all([
+    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }, { data: perPaketSettings }] = await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
       supabase
         .from("sesi_tryout")
@@ -76,9 +79,16 @@ function DashboardPage() {
         .select("key, tryout_enabled")
         .eq("key", "global")
         .maybeSingle(),
+      supabase.from("app_settings").select("key, tryout_enabled"),
     ]);
+    const settingsMap = new Map((perPaketSettings ?? []).map((item) => [item.key, item.tryout_enabled]));
     setProfileName(prof?.full_name ?? "");
-    setSesi((s as Sesi[]) ?? []);
+    setSesi(
+      ((s as Sesi[]) ?? []).map((item) => ({
+        ...item,
+        execution_enabled: settingsMap.get(paketExecutionKey(item.paket_id)) ?? true,
+      })),
+    );
     setBayar((b as Bayar[]) ?? []);
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     setLoading(false);
@@ -165,10 +175,19 @@ function DashboardPage() {
                     <div className="text-xs text-muted-foreground">
                       Mulai {formatDate(s.waktu_mulai)}
                     </div>
+                    {s.execution_enabled === false && (
+                      <div className="mt-1 text-xs text-warning-foreground">
+                        Pengerjaan paket ini sedang ditutup admin.
+                      </div>
+                    )}
                   </div>
-                  <Button asChild size="sm" disabled={!tryoutEnabled}>
+                  <Button asChild size="sm" disabled={!tryoutEnabled || s.execution_enabled === false}>
                     <Link to="/tryout/$sesiId" params={{ sesiId: s.id }}>
-                      {tryoutEnabled ? "Lanjutkan" : "Ditutup Sementara"}
+                      {tryoutEnabled
+                        ? s.execution_enabled === false
+                          ? "Pengerjaan OFF"
+                          : "Lanjutkan"
+                        : "Ditutup Sementara"}
                     </Link>
                   </Button>
                 </div>

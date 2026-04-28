@@ -24,6 +24,7 @@ interface Paket {
   jumlah_soal: number;
   max_attempts: number;
   is_gratis: boolean;
+  execution_enabled?: boolean;
 }
 
 interface PembayaranAccess {
@@ -35,6 +36,8 @@ interface AppSettings {
   key: string;
   tryout_enabled: boolean;
 }
+
+const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
 
 function PaketPage() {
   const { user } = useAuth();
@@ -64,7 +67,16 @@ function PaketPage() {
         .eq("key", "global")
         .maybeSingle(),
     ]);
-    setPaket(pk ?? []);
+    const { data: perPaketSettings } = await supabase
+      .from("app_settings")
+      .select("key, tryout_enabled");
+    const settingsMap = new Map((perPaketSettings ?? []).map((item) => [item.key, item.tryout_enabled]));
+    setPaket(
+      ((pk as Paket[]) ?? []).map((item) => ({
+        ...item,
+        execution_enabled: settingsMap.get(paketExecutionKey(item.id)) ?? true,
+      })),
+    );
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     if (user) {
       const { data: pay } = await supabase
@@ -93,6 +105,11 @@ function PaketPage() {
       toast.error("Tryout sedang dinonaktifkan admin untuk sementara.");
       return;
     }
+    const target = paket.find((p) => p.id === paketId);
+    if (!target?.execution_enabled) {
+      toast.error("Pengerjaan tryout untuk paket ini sedang ditutup admin.");
+      return;
+    }
     setActionId(paketId);
     // cek sesi in_progress
     const { data: existing } = await supabase
@@ -107,7 +124,6 @@ function PaketPage() {
       return;
     }
     // Cek batas pengerjaan
-    const target = paket.find((p) => p.id === paketId);
     if (target && target.max_attempts > 0) {
       const { count } = await supabase
         .from("sesi_tryout")
@@ -161,6 +177,7 @@ function PaketPage() {
           <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
             {paket.map((p) => {
               const acc = accessFor(p.id, p.is_gratis);
+              const executionEnabled = p.execution_enabled ?? true;
               return (
                 <Card
                   key={p.id}
@@ -172,15 +189,20 @@ function PaketPage() {
                         <CardTitle className="font-serif text-xl">{p.judul}</CardTitle>
                         <CardDescription className="mt-1">{p.deskripsi}</CardDescription>
                       </div>
-                      {p.is_gratis ? (
-                        <Badge className="bg-accent text-accent-foreground">
-                          <Sparkles className="mr-1 size-3" /> GRATIS
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-primary text-primary">
-                          PREMIUM
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {p.is_gratis ? (
+                          <Badge className="bg-accent text-accent-foreground">
+                            <Sparkles className="mr-1 size-3" /> GRATIS
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-primary text-primary">
+                            PREMIUM
+                          </Badge>
+                        )}
+                        {!executionEnabled && (
+                          <Badge variant="secondary">Pengerjaan Ditutup</Badge>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -203,13 +225,13 @@ function PaketPage() {
                       </div>
 
                       {acc === "free" || acc === "paid" ? (
-                        <Button onClick={() => startTryout(p.id)} disabled={actionId === p.id || !tryoutEnabled}>
+                        <Button onClick={() => startTryout(p.id)} disabled={actionId === p.id || !tryoutEnabled || !executionEnabled}>
                           {actionId === p.id ? (
                             <Loader2 className="mr-2 size-4 animate-spin" />
                           ) : (
                             <CheckCircle2 className="mr-2 size-4" />
                           )}
-                          {tryoutEnabled ? "Mulai Tryout" : "Tryout Ditutup"}
+                          {!tryoutEnabled ? "Tryout Ditutup" : !executionEnabled ? "Pengerjaan OFF" : "Mulai Tryout"}
                         </Button>
                       ) : acc === "pending" ? (
                         <Button variant="outline" disabled>

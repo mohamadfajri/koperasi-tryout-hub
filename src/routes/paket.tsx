@@ -37,8 +37,6 @@ interface AppSettings {
   tryout_enabled: boolean;
 }
 
-const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
-
 function PaketPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -67,14 +65,10 @@ function PaketPage() {
         .eq("key", "global")
         .maybeSingle(),
     ]);
-    const { data: perPaketSettings } = await supabase
-      .from("app_settings")
-      .select("key, tryout_enabled");
-    const settingsMap = new Map((perPaketSettings ?? []).map((item) => [item.key, item.tryout_enabled]));
     setPaket(
       ((pk as Paket[]) ?? []).map((item) => ({
         ...item,
-        execution_enabled: settingsMap.get(paketExecutionKey(item.id)) ?? true,
+        execution_enabled: item.max_attempts >= 0,
       })),
     );
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);

@@ -32,8 +32,6 @@ interface Bayar { id: string; user_id: string; paket_id: string; nominal: number
 interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
 interface AppSettings { key: string; tryout_enabled: boolean; }
 
-const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
-
 function AdminPage() {
   const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -348,15 +346,11 @@ function PaketTab() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: paketData }, { data: settingsData }] = await Promise.all([
-      supabase.from("paket_tryout").select("*").order("created_at", { ascending: false }),
-      supabase.from("app_settings").select("key, tryout_enabled"),
-    ]);
-    const settingsMap = new Map((settingsData ?? []).map((item) => [item.key, item.tryout_enabled]));
+    const { data: paketData } = await supabase.from("paket_tryout").select("*").order("created_at", { ascending: false });
     setList(
       ((paketData as Paket[]) ?? []).map((paket) => ({
         ...paket,
-        execution_enabled: settingsMap.get(paketExecutionKey(paket.id)) ?? true,
+        execution_enabled: paket.max_attempts >= 0,
       })),
     );
     setLoading(false);
@@ -391,10 +385,13 @@ function PaketTab() {
   };
 
   const toggleExecution = async (paketId: string, enabled: boolean) => {
+    const current = list.find((paket) => paket.id === paketId);
+    if (!current) return;
     setTogglingId(paketId);
     const { error } = await supabase
-      .from("app_settings")
-      .upsert({ key: paketExecutionKey(paketId), tryout_enabled: enabled }, { onConflict: "key" });
+      .from("paket_tryout")
+      .update({ max_attempts: enabled ? Math.max(current.max_attempts, 0) : -1 })
+      .eq("id", paketId);
     setTogglingId(null);
     if (error) {
       toast.error("Gagal memperbarui status pengerjaan: " + error.message);
@@ -402,7 +399,13 @@ function PaketTab() {
     }
     setList((prev) =>
       prev.map((paket) =>
-        paket.id === paketId ? { ...paket, execution_enabled: enabled } : paket,
+        paket.id === paketId
+          ? {
+              ...paket,
+              execution_enabled: enabled,
+              max_attempts: enabled ? Math.max(paket.max_attempts, 0) : -1,
+            }
+          : paket,
       ),
     );
     toast.success(enabled ? "Pengerjaan tryout diaktifkan." : "Pengerjaan tryout dimatikan.");
@@ -428,7 +431,14 @@ function PaketTab() {
                     {!p.is_aktif && <Badge variant="outline">nonaktif</Badge>}
                     {p.is_aktif && !p.execution_enabled && <Badge variant="secondary">pengerjaan off</Badge>}
                   </div>
-                  <div className="text-xs text-muted-foreground">{formatRupiah(p.harga)} · {p.durasi_menit} menit · {p.jumlah_soal} soal · {p.max_attempts === 0 ? "tanpa batas" : `maks ${p.max_attempts}× pengerjaan`}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatRupiah(p.harga)} · {p.durasi_menit} menit · {p.jumlah_soal} soal ·{" "}
+                    {(p.execution_enabled ?? true)
+                      ? p.max_attempts === 0
+                        ? "tanpa batas"
+                        : `maks ${p.max_attempts}× pengerjaan`
+                      : "pengerjaan dimatikan"}
+                  </div>
                 </div>
                 <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
                   <span className="text-muted-foreground">Pengerjaan</span>

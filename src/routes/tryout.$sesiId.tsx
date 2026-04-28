@@ -43,8 +43,6 @@ interface AppSettings {
   tryout_enabled: boolean;
 }
 
-const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
-
 const OPTS: Array<"A" | "B" | "C" | "D" | "E"> = ["A", "B", "C", "D", "E"];
 
 function TryoutPage() {
@@ -76,7 +74,7 @@ function TryoutPage() {
     const { data: appSettings, error: settingsError } = await supabase
       .from("app_settings")
       .select("key, tryout_enabled")
-      .in("key", ["global"])
+      .eq("key", "global")
       .maybeSingle();
     if (settingsError) {
       toast.error("Gagal memuat pengaturan tryout");
@@ -107,15 +105,10 @@ function TryoutPage() {
 
     const { data: pk } = await supabase
       .from("paket_tryout")
-      .select("id, judul, durasi_menit")
+      .select("id, judul, durasi_menit, max_attempts")
       .eq("id", s.paket_id)
       .single();
-    const { data: packageExecutionSetting } = await supabase
-      .from("app_settings")
-      .select("key, tryout_enabled")
-      .eq("key", paketExecutionKey(s.paket_id))
-      .maybeSingle();
-    const executionEnabled = (packageExecutionSetting as AppSettings | null)?.tryout_enabled ?? true;
+    const executionEnabled = (pk?.max_attempts ?? 0) >= 0;
     if (!executionEnabled) {
       toast.error("Pengerjaan tryout untuk paket ini sedang ditutup admin.");
       navigate({ to: "/dashboard" });

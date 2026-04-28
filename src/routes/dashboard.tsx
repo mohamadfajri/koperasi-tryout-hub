@@ -22,7 +22,7 @@ interface Sesi {
   jumlah_benar: number | null;
   waktu_mulai: string;
   waktu_selesai: string | null;
-  paket_tryout: { judul: string; jumlah_soal: number } | null;
+  paket_tryout: { judul: string; jumlah_soal: number; max_attempts?: number } | null;
   execution_enabled?: boolean;
 }
 interface Bayar {
@@ -39,8 +39,6 @@ interface AppSettings {
   key: string;
   tryout_enabled: boolean;
 }
-
-const paketExecutionKey = (paketId: string) => `paket_execution:${paketId}`;
 
 function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
@@ -62,11 +60,11 @@ function DashboardPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }, { data: perPaketSettings }] = await Promise.all([
+    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }] = await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
       supabase
         .from("sesi_tryout")
-        .select("id, paket_id, status, skor, jumlah_benar, waktu_mulai, waktu_selesai, paket_tryout(judul, jumlah_soal)")
+        .select("id, paket_id, status, skor, jumlah_benar, waktu_mulai, waktu_selesai, paket_tryout(judul, jumlah_soal, max_attempts)")
         .eq("user_id", user!.id)
         .order("waktu_mulai", { ascending: false }),
       supabase
@@ -79,14 +77,12 @@ function DashboardPage() {
         .select("key, tryout_enabled")
         .eq("key", "global")
         .maybeSingle(),
-      supabase.from("app_settings").select("key, tryout_enabled"),
     ]);
-    const settingsMap = new Map((perPaketSettings ?? []).map((item) => [item.key, item.tryout_enabled]));
     setProfileName(prof?.full_name ?? "");
     setSesi(
       ((s as Sesi[]) ?? []).map((item) => ({
         ...item,
-        execution_enabled: settingsMap.get(paketExecutionKey(item.paket_id)) ?? true,
+        execution_enabled: ((item.paket_tryout as (Sesi["paket_tryout"] & { max_attempts?: number }) | null)?.max_attempts ?? 0) >= 0,
       })),
     );
     setBayar((b as Bayar[]) ?? []);

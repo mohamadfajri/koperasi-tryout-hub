@@ -296,13 +296,17 @@ function TryoutPage() {
                 Terjawab: {totalAnswered}/{soal.length}
               </span>
             </div>
-            <p className="mb-6 whitespace-pre-wrap text-lg leading-relaxed text-foreground">
+            <p className="mb-3 whitespace-pre-wrap text-lg leading-relaxed text-foreground">
               {current.pertanyaan}
             </p>
+            {current.pertanyaan_gambar && (
+              <img src={current.pertanyaan_gambar} alt="Gambar soal" className="mb-6 max-h-96 rounded-lg border border-border" />
+            )}
             <div className="space-y-2">
               {OPTS.map((opt) => {
                 const text = (current as any)[`opsi_${opt.toLowerCase()}`] as string | null;
-                if (!text) return null;
+                const img = (current as any)[`opsi_${opt.toLowerCase()}_gambar`] as string | null;
+                if (!text && !img) return null;
                 const selected = jawaban[current.id] === opt;
                 return (
                   <button

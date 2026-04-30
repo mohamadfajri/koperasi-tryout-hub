@@ -264,6 +264,7 @@ function PaketPage() {
         open={reqDialogOpen}
         onOpenChange={setReqDialogOpen}
         paketJudul={paket.find((p) => p.id === pendingPaketId)?.judul}
+        paketId={pendingPaketId ?? undefined}
         onConfirmed={() => {
           setReqDialogOpen(false);
           if (pendingPaketId) {

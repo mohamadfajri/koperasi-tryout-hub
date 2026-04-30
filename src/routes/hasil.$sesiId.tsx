@@ -140,12 +140,12 @@ function HasilPage() {
           {jawaban.map((j) => {
             if (!j.soal) return null;
             const benar = j.is_benar;
-            const opts: Array<{ k: "A" | "B" | "C" | "D" | "E"; t: string | null }> = [
-              { k: "A", t: j.soal.opsi_a },
-              { k: "B", t: j.soal.opsi_b },
-              { k: "C", t: j.soal.opsi_c },
-              { k: "D", t: j.soal.opsi_d },
-              { k: "E", t: j.soal.opsi_e },
+            const opts: Array<{ k: "A" | "B" | "C" | "D" | "E"; t: string | null; img: string | null }> = [
+              { k: "A", t: j.soal.opsi_a, img: j.soal.opsi_a_gambar },
+              { k: "B", t: j.soal.opsi_b, img: j.soal.opsi_b_gambar },
+              { k: "C", t: j.soal.opsi_c, img: j.soal.opsi_c_gambar },
+              { k: "D", t: j.soal.opsi_d, img: j.soal.opsi_d_gambar },
+              { k: "E", t: j.soal.opsi_e, img: j.soal.opsi_e_gambar },
             ];
             return (
               <Card key={j.soal_id}>

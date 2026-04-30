@@ -77,7 +77,7 @@ function HasilPage() {
 
     const { data: jw } = await supabase
       .from("jawaban_user")
-      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan)")
+      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan, pertanyaan_gambar, opsi_a_gambar, opsi_b_gambar, opsi_c_gambar, opsi_d_gambar, opsi_e_gambar, pembahasan_gambar)")
       .eq("sesi_id", sesiId);
     const sorted = (jw as any[])?.sort((a, b) => (a.soal?.nomor ?? 0) - (b.soal?.nomor ?? 0)) ?? [];
     setJawaban(sorted as JawabanDetail[]);

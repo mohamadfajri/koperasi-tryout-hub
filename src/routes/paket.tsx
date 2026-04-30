@@ -46,6 +46,8 @@ function PaketPage() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [tryoutEnabled, setTryoutEnabled] = useState(true);
+  const [reqDialogOpen, setReqDialogOpen] = useState(false);
+  const [pendingPaketId, setPendingPaketId] = useState<string | null>(null);
 
   useEffect(() => {
     void load();

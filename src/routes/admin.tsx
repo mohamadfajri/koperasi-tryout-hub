@@ -58,13 +58,15 @@ function AdminPage() {
         </div>
 
         <Tabs defaultValue="pembayaran">
-          <TabsList className="mb-6 grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsList className="mb-6 grid w-full grid-cols-2 sm:grid-cols-5">
             <TabsTrigger value="pembayaran"><Receipt className="mr-2 size-4" />Pembayaran</TabsTrigger>
+            <TabsTrigger value="bukti-gratis"><Gift className="mr-2 size-4" />Bukti Gratis</TabsTrigger>
             <TabsTrigger value="paket"><Package className="mr-2 size-4" />Paket</TabsTrigger>
             <TabsTrigger value="soal"><FileQuestion className="mr-2 size-4" />Soal</TabsTrigger>
             <TabsTrigger value="user"><Users className="mr-2 size-4" />User</TabsTrigger>
           </TabsList>
           <TabsContent value="pembayaran"><PembayaranTab /></TabsContent>
+          <TabsContent value="bukti-gratis"><BuktiGratisTab /></TabsContent>
           <TabsContent value="paket"><PaketTab /></TabsContent>
           <TabsContent value="soal"><SoalTab /></TabsContent>
           <TabsContent value="user"><UserTab /></TabsContent>

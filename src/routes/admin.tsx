@@ -729,3 +729,170 @@ function UserTab() {
     </Card>
   );
 }
+
+// ====================== BUKTI TRYOUT GRATIS TAB ======================
+interface BuktiGratis {
+  id: string;
+  user_id: string;
+  paket_id: string | null;
+  ig_username: string;
+  bukti_image_url: string | null;
+  status: string;
+  catatan_admin: string | null;
+  created_at: string;
+}
+
+function BuktiGratisTab() {
+  const [items, setItems] = useState<BuktiGratis[]>([]);
+  const [profilesMap, setProfilesMap] = useState<Record<string, { full_name: string | null; email: string | null }>>({});
+  const [paketMap, setPaketMap] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    let q = supabase.from("bukti_tryout_gratis").select("*").order("created_at", { ascending: false });
+    if (filter !== "all") q = q.eq("status", filter);
+    const { data } = await q;
+    const list = (data as BuktiGratis[]) ?? [];
+    setItems(list);
+
+    const userIds = [...new Set(list.map((i) => i.user_id))];
+    const paketIds = [...new Set(list.map((i) => i.paket_id).filter((v): v is string => !!v))];
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds);
+      const map: Record<string, { full_name: string | null; email: string | null }> = {};
+      (profs ?? []).forEach((p) => { map[p.id] = { full_name: p.full_name, email: p.email }; });
+      setProfilesMap(map);
+    }
+    if (paketIds.length) {
+      const { data: pks } = await supabase.from("paket_tryout").select("id, judul").in("id", paketIds);
+      const map: Record<string, string> = {};
+      (pks ?? []).forEach((p) => { map[p.id] = p.judul; });
+      setPaketMap(map);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { void load(); }, [filter]);
+
+  const updateStatus = async (id: string, status: "approved" | "rejected") => {
+    const { error } = await supabase
+      .from("bukti_tryout_gratis")
+      .update({ status, verified_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(`Bukti ${status === "approved" ? "disetujui" : "ditolak"}`);
+    void load();
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Hapus bukti ini?")) return;
+    const { error } = await supabase.from("bukti_tryout_gratis").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Bukti dihapus");
+    void load();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <CardTitle>Bukti Persyaratan Tryout Gratis</CardTitle>
+          <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
+            <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Menunggu</SelectItem>
+              <SelectItem value="approved">Disetujui</SelectItem>
+              <SelectItem value="rejected">Ditolak</SelectItem>
+              <SelectItem value="all">Semua</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-10"><Loader2 className="size-6 animate-spin text-primary" /></div>
+        ) : items.length === 0 ? (
+          <p className="py-10 text-center text-muted-foreground">Belum ada bukti.</p>
+        ) : (
+          <div className="space-y-3">
+            {items.map((b) => {
+              const prof = profilesMap[b.user_id];
+              return (
+                <div key={b.id} className="rounded-lg border border-border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-medium">{prof?.full_name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground">{prof?.email ?? b.user_id}</div>
+                      <div className="text-xs">
+                        IG: <span className="font-medium">{b.ig_username}</span>
+                      </div>
+                      {b.paket_id && (
+                        <div className="text-xs text-muted-foreground">
+                          Paket: {paketMap[b.paket_id] ?? b.paket_id}
+                        </div>
+                      )}
+                      <div className="text-xs text-muted-foreground">{formatDate(b.created_at)}</div>
+                    </div>
+                    <Badge
+                      variant={b.status === "approved" ? "default" : b.status === "rejected" ? "destructive" : "secondary"}
+                    >
+                      {b.status}
+                    </Badge>
+                  </div>
+
+                  {b.bukti_image_url && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewUrl(b.bukti_image_url)}
+                      className="mt-3 block"
+                    >
+                      <img
+                        src={b.bukti_image_url}
+                        alt="Bukti share"
+                        className="max-h-40 rounded border border-border object-contain bg-background"
+                      />
+                    </button>
+                  )}
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {b.status !== "approved" && (
+                      <Button size="sm" onClick={() => updateStatus(b.id, "approved")}>
+                        <CheckCircle2 className="mr-1 size-4" /> Setujui
+                      </Button>
+                    )}
+                    {b.status !== "rejected" && (
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(b.id, "rejected")}>
+                        <XCircle className="mr-1 size-4" /> Tolak
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" onClick={() => remove(b.id)}>
+                      <Trash2 className="mr-1 size-4" /> Hapus
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <Dialog open={!!previewUrl} onOpenChange={(o) => !o && setPreviewUrl(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader><DialogTitle>Bukti Share</DialogTitle></DialogHeader>
+            {previewUrl && (
+              <img src={previewUrl} alt="Bukti besar" className="max-h-[70vh] w-full rounded border border-border object-contain" />
+            )}
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}

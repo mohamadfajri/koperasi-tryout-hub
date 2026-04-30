@@ -328,7 +328,10 @@ function TryoutPage() {
                     >
                       {opt}
                     </span>
-                    <span className="flex-1 text-sm">{text}</span>
+                    <span className="flex-1 space-y-2 text-sm">
+                      {text && <span className="block">{text}</span>}
+                      {img && <img src={img} alt={`Opsi ${opt}`} className="max-h-48 rounded border border-border" />}
+                    </span>
                   </button>
                 );
               })}

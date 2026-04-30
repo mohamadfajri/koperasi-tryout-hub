@@ -107,6 +107,15 @@ function PaketPage() {
       toast.error("Pengerjaan tryout untuk paket ini sedang ditutup admin.");
       return;
     }
+    // Untuk paket GRATIS: minta konfirmasi persyaratan dulu (sekali per browser)
+    if (target?.is_gratis) {
+      const already = typeof window !== "undefined" && localStorage.getItem("free_tryout_requirements");
+      if (!already) {
+        setPendingPaketId(paketId);
+        setReqDialogOpen(true);
+        return;
+      }
+    }
     setActionId(paketId);
     // cek sesi in_progress
     const { data: existing } = await supabase

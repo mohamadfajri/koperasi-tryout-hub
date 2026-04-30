@@ -21,6 +21,12 @@ interface Soal {
   opsi_c: string;
   opsi_d: string;
   opsi_e: string | null;
+  pertanyaan_gambar?: string | null;
+  opsi_a_gambar?: string | null;
+  opsi_b_gambar?: string | null;
+  opsi_c_gambar?: string | null;
+  opsi_d_gambar?: string | null;
+  opsi_e_gambar?: string | null;
 }
 
 interface Sesi {

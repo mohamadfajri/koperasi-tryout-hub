@@ -39,6 +39,13 @@ interface JawabanDetail {
     opsi_e: string | null;
     jawaban_benar: string;
     pembahasan: string | null;
+    pertanyaan_gambar: string | null;
+    opsi_a_gambar: string | null;
+    opsi_b_gambar: string | null;
+    opsi_c_gambar: string | null;
+    opsi_d_gambar: string | null;
+    opsi_e_gambar: string | null;
+    pembahasan_gambar: string | null;
   } | null;
 }
 
@@ -70,7 +77,7 @@ function HasilPage() {
 
     const { data: jw } = await supabase
       .from("jawaban_user")
-      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan)")
+      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan, pertanyaan_gambar, opsi_a_gambar, opsi_b_gambar, opsi_c_gambar, opsi_d_gambar, opsi_e_gambar, pembahasan_gambar)")
       .eq("sesi_id", sesiId);
     const sorted = (jw as any[])?.sort((a, b) => (a.soal?.nomor ?? 0) - (b.soal?.nomor ?? 0)) ?? [];
     setJawaban(sorted as JawabanDetail[]);
@@ -133,12 +140,12 @@ function HasilPage() {
           {jawaban.map((j) => {
             if (!j.soal) return null;
             const benar = j.is_benar;
-            const opts: Array<{ k: "A" | "B" | "C" | "D" | "E"; t: string | null }> = [
-              { k: "A", t: j.soal.opsi_a },
-              { k: "B", t: j.soal.opsi_b },
-              { k: "C", t: j.soal.opsi_c },
-              { k: "D", t: j.soal.opsi_d },
-              { k: "E", t: j.soal.opsi_e },
+            const opts: Array<{ k: "A" | "B" | "C" | "D" | "E"; t: string | null; img: string | null }> = [
+              { k: "A", t: j.soal.opsi_a, img: j.soal.opsi_a_gambar },
+              { k: "B", t: j.soal.opsi_b, img: j.soal.opsi_b_gambar },
+              { k: "C", t: j.soal.opsi_c, img: j.soal.opsi_c_gambar },
+              { k: "D", t: j.soal.opsi_d, img: j.soal.opsi_d_gambar },
+              { k: "E", t: j.soal.opsi_e, img: j.soal.opsi_e_gambar },
             ];
             return (
               <Card key={j.soal_id}>
@@ -164,9 +171,12 @@ function HasilPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="whitespace-pre-wrap text-sm">{j.soal.pertanyaan}</p>
+                  {j.soal.pertanyaan_gambar && (
+                    <img src={j.soal.pertanyaan_gambar} alt="Gambar soal" className="max-h-80 rounded border border-border" />
+                  )}
                   <div className="space-y-1.5">
                     {opts.map((o) =>
-                      o.t ? (
+                      o.t || o.img ? (
                         <div
                           key={o.k}
                           className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
@@ -178,7 +188,10 @@ function HasilPage() {
                           }`}
                         >
                           <span className="font-bold">{o.k}.</span>
-                          <span className="flex-1">{o.t}</span>
+                          <div className="flex-1 space-y-1">
+                            {o.t && <div>{o.t}</div>}
+                            {o.img && <img src={o.img} alt={`Opsi ${o.k}`} className="max-h-40 rounded border border-border" />}
+                          </div>
                           {o.k === j.soal!.jawaban_benar && (
                             <span className="text-xs font-semibold text-success">✓ Jawaban benar</span>
                           )}
@@ -189,10 +202,13 @@ function HasilPage() {
                       ) : null
                     )}
                   </div>
-                  {j.soal.pembahasan && (
+                  {(j.soal.pembahasan || j.soal.pembahasan_gambar) && (
                     <div className="rounded-md bg-primary-soft p-3 text-sm">
                       <div className="mb-1 text-xs font-bold uppercase text-primary">Pembahasan</div>
-                      <p>{j.soal.pembahasan}</p>
+                      {j.soal.pembahasan && <p className="whitespace-pre-wrap">{j.soal.pembahasan}</p>}
+                      {j.soal.pembahasan_gambar && (
+                        <img src={j.soal.pembahasan_gambar} alt="Gambar pembahasan" className="mt-2 max-h-80 rounded border border-border" />
+                      )}
                     </div>
                   )}
                 </CardContent>

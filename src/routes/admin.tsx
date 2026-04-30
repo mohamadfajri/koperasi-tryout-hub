@@ -27,7 +27,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; max_attempts: number; is_gratis: boolean; is_aktif: boolean; execution_enabled?: boolean; }
-interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; }
+interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; pertanyaan_gambar?: string | null; opsi_a_gambar?: string | null; opsi_b_gambar?: string | null; opsi_c_gambar?: string | null; opsi_d_gambar?: string | null; opsi_e_gambar?: string | null; pembahasan_gambar?: string | null; }
 interface Bayar { id: string; user_id: string; paket_id: string; nominal: number; bukti_url: string | null; status: "pending" | "approved" | "rejected"; catatan_admin: string | null; created_at: string; profiles: { full_name: string | null; email: string | null } | null; paket_tryout: { judul: string } | null; }
 interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
 interface AppSettings { key: string; tryout_enabled: boolean; }
@@ -490,6 +490,43 @@ function PaketTab() {
 }
 
 /* ============ SOAL ============ */
+const IMG_FIELDS = ["pertanyaan_gambar", "opsi_a_gambar", "opsi_b_gambar", "opsi_c_gambar", "opsi_d_gambar", "opsi_e_gambar", "pembahasan_gambar"] as const;
+type ImgField = typeof IMG_FIELDS[number];
+
+function ImageUploader({ label, value, onChange }: { label: string; value: string | null | undefined; onChange: (url: string | null) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const handleFile = async (file: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Ukuran gambar maks 5MB"); return; }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("soal-images").upload(path, file, { upsert: false, contentType: file.type });
+    setUploading(false);
+    if (error) { toast.error("Gagal upload: " + error.message); return; }
+    const { data } = supabase.storage.from("soal-images").getPublicUrl(path);
+    onChange(data.publicUrl);
+    toast.success("Gambar terunggah");
+  };
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="flex items-center gap-2">
+        <Input type="file" accept="image/*" disabled={uploading}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f); e.currentTarget.value = ""; }}
+          className="text-xs" />
+        {uploading && <Loader2 className="size-4 animate-spin text-primary" />}
+        {value && (
+          <Button type="button" size="sm" variant="outline" className="text-destructive" onClick={() => onChange(null)}>
+            <Trash2 className="size-3" />
+          </Button>
+        )}
+      </div>
+      {value && <img src={value} alt="" className="mt-1 max-h-32 rounded border border-border" />}
+    </div>
+  );
+}
+
 function SoalTab() {
   const [paket, setPaket] = useState<Paket[]>([]);
   const [paketId, setPaketId] = useState<string>("");
@@ -497,6 +534,9 @@ function SoalTab() {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Soal | null>(null);
   const [open, setOpen] = useState(false);
+  const [imgs, setImgs] = useState<Record<ImgField, string | null>>({
+    pertanyaan_gambar: null, opsi_a_gambar: null, opsi_b_gambar: null, opsi_c_gambar: null, opsi_d_gambar: null, opsi_e_gambar: null, pembahasan_gambar: null,
+  });
 
   useEffect(() => {
     supabase.from("paket_tryout").select("*").order("judul").then(({ data }) => {
@@ -513,6 +553,20 @@ function SoalTab() {
   };
   useEffect(() => { void load(); }, [paketId]);
 
+  const openForm = (s: Soal | null) => {
+    setEditing(s);
+    setImgs({
+      pertanyaan_gambar: s?.pertanyaan_gambar ?? null,
+      opsi_a_gambar: s?.opsi_a_gambar ?? null,
+      opsi_b_gambar: s?.opsi_b_gambar ?? null,
+      opsi_c_gambar: s?.opsi_c_gambar ?? null,
+      opsi_d_gambar: s?.opsi_d_gambar ?? null,
+      opsi_e_gambar: s?.opsi_e_gambar ?? null,
+      pembahasan_gambar: s?.pembahasan_gambar ?? null,
+    });
+    setOpen(true);
+  };
+
   const save = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -527,6 +581,7 @@ function SoalTab() {
       opsi_e: String(fd.get("e") || "").trim() || null,
       jawaban_benar: String(fd.get("jawaban") || "A"),
       pembahasan: String(fd.get("pembahasan") || "") || null,
+      ...imgs,
     };
     const res = editing
       ? await supabase.from("soal").update(payload).eq("id", editing.id)
@@ -552,9 +607,9 @@ function SoalTab() {
               {paket.map((p) => <SelectItem key={p.id} value={p.id}>{p.judul}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button size="sm" disabled={!paketId} onClick={() => {
-            setEditing(null); setOpen(true);
-          }}><Plus className="mr-1 size-4" />Tambah Soal</Button>
+          <Button size="sm" disabled={!paketId} onClick={() => openForm(null)}>
+            <Plus className="mr-1 size-4" />Tambah Soal
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -567,9 +622,12 @@ function SoalTab() {
                 <div className="font-bold text-primary">#{s.nomor}</div>
                 <div className="min-w-0 flex-1">
                   <div className="line-clamp-2 text-sm">{s.pertanyaan}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Jawaban benar: <b>{s.jawaban_benar}</b></div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Jawaban benar: <b>{s.jawaban_benar}</b>
+                    {s.pertanyaan_gambar && <span className="ml-2">· 🖼️ ada gambar</span>}
+                  </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => { setEditing(s); setOpen(true); }}>
+                <Button size="sm" variant="outline" onClick={() => openForm(s)}>
                   <Pencil className="size-4" />
                 </Button>
                 <Button size="sm" variant="outline" className="text-destructive" onClick={() => remove(s.id)}>
@@ -582,7 +640,7 @@ function SoalTab() {
       </CardContent>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? `Edit Soal #${editing.nomor}` : "Soal Baru"}</DialogTitle></DialogHeader>
           <form onSubmit={save} className="space-y-3">
             <div className="grid grid-cols-4 gap-3">
@@ -594,13 +652,27 @@ function SoalTab() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-1.5"><Label>Pertanyaan</Label><Textarea name="pertanyaan" rows={3} required defaultValue={editing?.pertanyaan} /></div>
+            <div className="space-y-1.5">
+              <Label>Pertanyaan</Label>
+              <Textarea name="pertanyaan" rows={3} required defaultValue={editing?.pertanyaan} />
+              <ImageUploader label="Gambar pertanyaan (opsional)" value={imgs.pertanyaan_gambar} onChange={(v) => setImgs((p) => ({ ...p, pertanyaan_gambar: v }))} />
+            </div>
             {(["a","b","c","d","e"] as const).map((k) => (
-              <div key={k} className="space-y-1.5"><Label>Opsi {k.toUpperCase()}{k === "e" && " (opsional)"}</Label>
+              <div key={k} className="space-y-1.5 rounded-md border border-border p-2">
+                <Label>Opsi {k.toUpperCase()}{k === "e" && " (opsional)"}</Label>
                 <Input name={k} required={k !== "e"} defaultValue={(editing as any)?.[`opsi_${k}`] ?? ""} />
+                <ImageUploader
+                  label={`Gambar opsi ${k.toUpperCase()} (opsional)`}
+                  value={imgs[`opsi_${k}_gambar` as ImgField]}
+                  onChange={(v) => setImgs((p) => ({ ...p, [`opsi_${k}_gambar`]: v }))}
+                />
               </div>
             ))}
-            <div className="space-y-1.5"><Label>Pembahasan (opsional)</Label><Textarea name="pembahasan" defaultValue={editing?.pembahasan ?? ""} /></div>
+            <div className="space-y-1.5">
+              <Label>Pembahasan (opsional)</Label>
+              <Textarea name="pembahasan" defaultValue={editing?.pembahasan ?? ""} />
+              <ImageUploader label="Gambar pembahasan (opsional)" value={imgs.pembahasan_gambar} onChange={(v) => setImgs((p) => ({ ...p, pembahasan_gambar: v }))} />
+            </div>
             <DialogFooter><Button type="submit">Simpan</Button></DialogFooter>
           </form>
         </DialogContent>

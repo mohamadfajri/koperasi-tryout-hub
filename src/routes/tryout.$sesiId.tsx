@@ -21,6 +21,12 @@ interface Soal {
   opsi_c: string;
   opsi_d: string;
   opsi_e: string | null;
+  pertanyaan_gambar?: string | null;
+  opsi_a_gambar?: string | null;
+  opsi_b_gambar?: string | null;
+  opsi_c_gambar?: string | null;
+  opsi_d_gambar?: string | null;
+  opsi_e_gambar?: string | null;
 }
 
 interface Sesi {
@@ -118,7 +124,7 @@ function TryoutPage() {
 
     const { data: sl } = await supabase
       .from("soal")
-      .select("id, nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e")
+      .select("id, nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, pertanyaan_gambar, opsi_a_gambar, opsi_b_gambar, opsi_c_gambar, opsi_d_gambar, opsi_e_gambar")
       .eq("paket_id", s.paket_id)
       .order("nomor", { ascending: true });
     setSoal(sl ?? []);
@@ -290,13 +296,17 @@ function TryoutPage() {
                 Terjawab: {totalAnswered}/{soal.length}
               </span>
             </div>
-            <p className="mb-6 whitespace-pre-wrap text-lg leading-relaxed text-foreground">
+            <p className="mb-3 whitespace-pre-wrap text-lg leading-relaxed text-foreground">
               {current.pertanyaan}
             </p>
+            {current.pertanyaan_gambar && (
+              <img src={current.pertanyaan_gambar} alt="Gambar soal" className="mb-6 max-h-96 rounded-lg border border-border" />
+            )}
             <div className="space-y-2">
               {OPTS.map((opt) => {
                 const text = (current as any)[`opsi_${opt.toLowerCase()}`] as string | null;
-                if (!text) return null;
+                const img = (current as any)[`opsi_${opt.toLowerCase()}_gambar`] as string | null;
+                if (!text && !img) return null;
                 const selected = jawaban[current.id] === opt;
                 return (
                   <button
@@ -318,7 +328,10 @@ function TryoutPage() {
                     >
                       {opt}
                     </span>
-                    <span className="flex-1 text-sm">{text}</span>
+                    <span className="flex-1 space-y-2 text-sm">
+                      {text && <span className="block">{text}</span>}
+                      {img && <img src={img} alt={`Opsi ${opt}`} className="max-h-48 rounded border border-border" />}
+                    </span>
                   </button>
                 );
               })}

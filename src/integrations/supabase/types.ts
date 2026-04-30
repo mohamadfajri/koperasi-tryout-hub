@@ -229,13 +229,20 @@ export type Database = {
           jawaban_benar: string
           nomor: number
           opsi_a: string
+          opsi_a_gambar: string | null
           opsi_b: string
+          opsi_b_gambar: string | null
           opsi_c: string
+          opsi_c_gambar: string | null
           opsi_d: string
+          opsi_d_gambar: string | null
           opsi_e: string | null
+          opsi_e_gambar: string | null
           paket_id: string
           pembahasan: string | null
+          pembahasan_gambar: string | null
           pertanyaan: string
+          pertanyaan_gambar: string | null
         }
         Insert: {
           created_at?: string
@@ -243,13 +250,20 @@ export type Database = {
           jawaban_benar: string
           nomor: number
           opsi_a: string
+          opsi_a_gambar?: string | null
           opsi_b: string
+          opsi_b_gambar?: string | null
           opsi_c: string
+          opsi_c_gambar?: string | null
           opsi_d: string
+          opsi_d_gambar?: string | null
           opsi_e?: string | null
+          opsi_e_gambar?: string | null
           paket_id: string
           pembahasan?: string | null
+          pembahasan_gambar?: string | null
           pertanyaan: string
+          pertanyaan_gambar?: string | null
         }
         Update: {
           created_at?: string
@@ -257,13 +271,20 @@ export type Database = {
           jawaban_benar?: string
           nomor?: number
           opsi_a?: string
+          opsi_a_gambar?: string | null
           opsi_b?: string
+          opsi_b_gambar?: string | null
           opsi_c?: string
+          opsi_c_gambar?: string | null
           opsi_d?: string
+          opsi_d_gambar?: string | null
           opsi_e?: string | null
+          opsi_e_gambar?: string | null
           paket_id?: string
           pembahasan?: string | null
+          pembahasan_gambar?: string | null
           pertanyaan?: string
+          pertanyaan_gambar?: string | null
         }
         Relationships: [
           {

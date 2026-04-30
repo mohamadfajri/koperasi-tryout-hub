@@ -124,7 +124,7 @@ function TryoutPage() {
 
     const { data: sl } = await supabase
       .from("soal")
-      .select("id, nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e")
+      .select("id, nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, pertanyaan_gambar, opsi_a_gambar, opsi_b_gambar, opsi_c_gambar, opsi_d_gambar, opsi_e_gambar")
       .eq("paket_id", s.paket_id)
       .order("nomor", { ascending: true });
     setSoal(sl ?? []);

@@ -27,26 +27,7 @@ export const Route = createFileRoute("/admin")({
 });
 
 interface Paket { id: string; judul: string; deskripsi: string | null; harga: number; durasi_menit: number; jumlah_soal: number; max_attempts: number; is_gratis: boolean; is_aktif: boolean; execution_enabled?: boolean; }
-interface Soal {
-  id: string;
-  paket_id: string;
-  nomor: number;
-  pertanyaan: string;
-  pertanyaan_gambar_url: string | null;
-  opsi_a: string;
-  opsi_a_gambar_url: string | null;
-  opsi_b: string;
-  opsi_b_gambar_url: string | null;
-  opsi_c: string;
-  opsi_c_gambar_url: string | null;
-  opsi_d: string;
-  opsi_d_gambar_url: string | null;
-  opsi_e: string | null;
-  opsi_e_gambar_url: string | null;
-  jawaban_benar: string;
-  pembahasan: string | null;
-  pembahasan_gambar_url: string | null;
-}
+interface Soal { id: string; paket_id: string; nomor: number; pertanyaan: string; opsi_a: string; opsi_b: string; opsi_c: string; opsi_d: string; opsi_e: string | null; jawaban_benar: string; pembahasan: string | null; }
 interface Bayar { id: string; user_id: string; paket_id: string; nominal: number; bukti_url: string | null; status: "pending" | "approved" | "rejected"; catatan_admin: string | null; created_at: string; profiles: { full_name: string | null; email: string | null } | null; paket_tryout: { judul: string } | null; }
 interface UserRow { id: string; full_name: string | null; email: string | null; phone: string | null; created_at: string; sesi_count: number; }
 interface AppSettings { key: string; tryout_enabled: boolean; }
@@ -539,20 +520,13 @@ function SoalTab() {
       paket_id: paketId,
       nomor: Number(fd.get("nomor") || 1),
       pertanyaan: String(fd.get("pertanyaan") || "").trim(),
-      pertanyaan_gambar_url: String(fd.get("pertanyaan_gambar_url") || "").trim() || null,
       opsi_a: String(fd.get("a") || "").trim(),
-      opsi_a_gambar_url: String(fd.get("a_gambar_url") || "").trim() || null,
       opsi_b: String(fd.get("b") || "").trim(),
-      opsi_b_gambar_url: String(fd.get("b_gambar_url") || "").trim() || null,
       opsi_c: String(fd.get("c") || "").trim(),
-      opsi_c_gambar_url: String(fd.get("c_gambar_url") || "").trim() || null,
       opsi_d: String(fd.get("d") || "").trim(),
-      opsi_d_gambar_url: String(fd.get("d_gambar_url") || "").trim() || null,
       opsi_e: String(fd.get("e") || "").trim() || null,
-      opsi_e_gambar_url: String(fd.get("e_gambar_url") || "").trim() || null,
       jawaban_benar: String(fd.get("jawaban") || "A"),
       pembahasan: String(fd.get("pembahasan") || "") || null,
-      pembahasan_gambar_url: String(fd.get("pembahasan_gambar_url") || "").trim() || null,
     };
     const res = editing
       ? await supabase.from("soal").update(payload).eq("id", editing.id)
@@ -621,16 +595,12 @@ function SoalTab() {
               </div>
             </div>
             <div className="space-y-1.5"><Label>Pertanyaan</Label><Textarea name="pertanyaan" rows={3} required defaultValue={editing?.pertanyaan} /></div>
-            <div className="space-y-1.5"><Label>URL Gambar Pertanyaan (opsional)</Label><Input name="pertanyaan_gambar_url" placeholder="https://..." defaultValue={editing?.pertanyaan_gambar_url ?? ""} /></div>
             {(["a","b","c","d","e"] as const).map((k) => (
-              <div key={k} className="space-y-1.5 rounded-md border border-border/60 p-3">
-                <Label>Opsi {k.toUpperCase()}{k === "e" && " (opsional)"}</Label>
+              <div key={k} className="space-y-1.5"><Label>Opsi {k.toUpperCase()}{k === "e" && " (opsional)"}</Label>
                 <Input name={k} required={k !== "e"} defaultValue={(editing as any)?.[`opsi_${k}`] ?? ""} />
-                <Input name={`${k}_gambar_url`} placeholder={`URL Gambar Opsi ${k.toUpperCase()} (opsional)`} defaultValue={(editing as any)?.[`opsi_${k}_gambar_url`] ?? ""} />
               </div>
             ))}
             <div className="space-y-1.5"><Label>Pembahasan (opsional)</Label><Textarea name="pembahasan" defaultValue={editing?.pembahasan ?? ""} /></div>
-            <div className="space-y-1.5"><Label>URL Gambar Pembahasan (opsional)</Label><Input name="pembahasan_gambar_url" placeholder="https://..." defaultValue={editing?.pembahasan_gambar_url ?? ""} /></div>
             <DialogFooter><Button type="submit">Simpan</Button></DialogFooter>
           </form>
         </DialogContent>

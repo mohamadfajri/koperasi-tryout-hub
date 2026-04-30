@@ -32,20 +32,13 @@ interface JawabanDetail {
   soal: {
     nomor: number;
     pertanyaan: string;
-    pertanyaan_gambar_url: string | null;
     opsi_a: string;
-    opsi_a_gambar_url: string | null;
     opsi_b: string;
-    opsi_b_gambar_url: string | null;
     opsi_c: string;
-    opsi_c_gambar_url: string | null;
     opsi_d: string;
-    opsi_d_gambar_url: string | null;
     opsi_e: string | null;
-    opsi_e_gambar_url: string | null;
     jawaban_benar: string;
     pembahasan: string | null;
-    pembahasan_gambar_url: string | null;
   } | null;
 }
 
@@ -77,7 +70,7 @@ function HasilPage() {
 
     const { data: jw } = await supabase
       .from("jawaban_user")
-      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, pertanyaan_gambar_url, opsi_a, opsi_a_gambar_url, opsi_b, opsi_b_gambar_url, opsi_c, opsi_c_gambar_url, opsi_d, opsi_d_gambar_url, opsi_e, opsi_e_gambar_url, jawaban_benar, pembahasan, pembahasan_gambar_url)")
+      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan)")
       .eq("sesi_id", sesiId);
     const sorted = (jw as any[])?.sort((a, b) => (a.soal?.nomor ?? 0) - (b.soal?.nomor ?? 0)) ?? [];
     setJawaban(sorted as JawabanDetail[]);
@@ -171,16 +164,9 @@ function HasilPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="whitespace-pre-wrap text-sm">{j.soal.pertanyaan}</p>
-                  {j.soal.pertanyaan_gambar_url && (
-                    <img
-                      src={j.soal.pertanyaan_gambar_url}
-                      alt={`Gambar soal ${j.soal.nomor}`}
-                      className="max-h-80 w-full rounded-md border border-border object-contain"
-                    />
-                  )}
                   <div className="space-y-1.5">
                     {opts.map((o) =>
-                      (o.t || (j.soal as any)[`opsi_${o.k.toLowerCase()}_gambar_url`]) ? (
+                      o.t ? (
                         <div
                           key={o.k}
                           className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
@@ -192,16 +178,7 @@ function HasilPage() {
                           }`}
                         >
                           <span className="font-bold">{o.k}.</span>
-                          <span className="flex-1">
-                            <span>{o.t}</span>
-                            {(j.soal as any)[`opsi_${o.k.toLowerCase()}_gambar_url`] && (
-                              <img
-                                src={(j.soal as any)[`opsi_${o.k.toLowerCase()}_gambar_url`]}
-                                alt={`Gambar opsi ${o.k} soal ${j.soal.nomor}`}
-                                className="mt-2 max-h-48 w-full rounded-md border border-border object-contain"
-                              />
-                            )}
-                          </span>
+                          <span className="flex-1">{o.t}</span>
                           {o.k === j.soal!.jawaban_benar && (
                             <span className="text-xs font-semibold text-success">✓ Jawaban benar</span>
                           )}
@@ -212,17 +189,10 @@ function HasilPage() {
                       ) : null
                     )}
                   </div>
-                  {(j.soal.pembahasan || j.soal.pembahasan_gambar_url) && (
+                  {j.soal.pembahasan && (
                     <div className="rounded-md bg-primary-soft p-3 text-sm">
                       <div className="mb-1 text-xs font-bold uppercase text-primary">Pembahasan</div>
-                      {j.soal.pembahasan && <p>{j.soal.pembahasan}</p>}
-                      {j.soal.pembahasan_gambar_url && (
-                        <img
-                          src={j.soal.pembahasan_gambar_url}
-                          alt={`Gambar pembahasan soal ${j.soal.nomor}`}
-                          className="mt-2 max-h-80 w-full rounded-md border border-border object-contain"
-                        />
-                      )}
+                      <p>{j.soal.pembahasan}</p>
                     </div>
                   )}
                 </CardContent>

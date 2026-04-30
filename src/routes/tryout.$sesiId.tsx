@@ -16,17 +16,11 @@ interface Soal {
   id: string;
   nomor: number;
   pertanyaan: string;
-  pertanyaan_gambar_url: string | null;
   opsi_a: string;
-  opsi_a_gambar_url: string | null;
   opsi_b: string;
-  opsi_b_gambar_url: string | null;
   opsi_c: string;
-  opsi_c_gambar_url: string | null;
   opsi_d: string;
-  opsi_d_gambar_url: string | null;
   opsi_e: string | null;
-  opsi_e_gambar_url: string | null;
 }
 
 interface Sesi {
@@ -124,7 +118,7 @@ function TryoutPage() {
 
     const { data: sl } = await supabase
       .from("soal")
-      .select("id, nomor, pertanyaan, pertanyaan_gambar_url, opsi_a, opsi_a_gambar_url, opsi_b, opsi_b_gambar_url, opsi_c, opsi_c_gambar_url, opsi_d, opsi_d_gambar_url, opsi_e, opsi_e_gambar_url")
+      .select("id, nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e")
       .eq("paket_id", s.paket_id)
       .order("nomor", { ascending: true });
     setSoal(sl ?? []);
@@ -299,18 +293,10 @@ function TryoutPage() {
             <p className="mb-6 whitespace-pre-wrap text-lg leading-relaxed text-foreground">
               {current.pertanyaan}
             </p>
-            {current.pertanyaan_gambar_url && (
-              <img
-                src={current.pertanyaan_gambar_url}
-                alt={`Gambar soal ${current.nomor}`}
-                className="mb-6 max-h-80 w-full rounded-md border border-border object-contain"
-              />
-            )}
             <div className="space-y-2">
               {OPTS.map((opt) => {
                 const text = (current as any)[`opsi_${opt.toLowerCase()}`] as string | null;
-                const imageUrl = (current as any)[`opsi_${opt.toLowerCase()}_gambar_url`] as string | null;
-                if (!text && !imageUrl) return null;
+                if (!text) return null;
                 const selected = jawaban[current.id] === opt;
                 return (
                   <button
@@ -332,16 +318,7 @@ function TryoutPage() {
                     >
                       {opt}
                     </span>
-                    <span className="flex-1 text-sm">
-                      <span>{text}</span>
-                      {imageUrl && (
-                        <img
-                          src={imageUrl}
-                          alt={`Gambar opsi ${opt} soal ${current.nomor}`}
-                          className="mt-2 max-h-48 w-full rounded-md border border-border object-contain"
-                        />
-                      )}
-                    </span>
+                    <span className="flex-1 text-sm">{text}</span>
                   </button>
                 );
               })}

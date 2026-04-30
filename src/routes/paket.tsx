@@ -260,6 +260,19 @@ function PaketPage() {
         )}
       </main>
       <SiteFooter />
+      <FreeTryoutRequirementsDialog
+        open={reqDialogOpen}
+        onOpenChange={setReqDialogOpen}
+        paketJudul={paket.find((p) => p.id === pendingPaketId)?.judul}
+        onConfirmed={() => {
+          setReqDialogOpen(false);
+          if (pendingPaketId) {
+            const id = pendingPaketId;
+            setPendingPaketId(null);
+            void startTryout(id);
+          }
+        }}
+      />
     </div>
   );
 }

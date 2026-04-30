@@ -38,6 +38,48 @@ export type Database = {
         }
         Relationships: []
       }
+      bukti_tryout_gratis: {
+        Row: {
+          bukti_image_url: string | null
+          catatan_admin: string | null
+          created_at: string
+          id: string
+          ig_username: string
+          paket_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          bukti_image_url?: string | null
+          catatan_admin?: string | null
+          created_at?: string
+          id?: string
+          ig_username: string
+          paket_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          bukti_image_url?: string | null
+          catatan_admin?: string | null
+          created_at?: string
+          id?: string
+          ig_username?: string
+          paket_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       jawaban_user: {
         Row: {
           created_at: string

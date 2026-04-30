@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, FileQuestion, Loader2, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/format";
+import { FreeTryoutRequirementsDialog } from "@/components/free-tryout-requirements-dialog";
 
 export const Route = createFileRoute("/paket")({
   head: () => ({ meta: [{ title: "Paket Tryout — CBT Koperasi" }] }),
@@ -45,6 +46,8 @@ function PaketPage() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [tryoutEnabled, setTryoutEnabled] = useState(true);
+  const [reqDialogOpen, setReqDialogOpen] = useState(false);
+  const [pendingPaketId, setPendingPaketId] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -103,6 +106,15 @@ function PaketPage() {
     if (!target?.execution_enabled) {
       toast.error("Pengerjaan tryout untuk paket ini sedang ditutup admin.");
       return;
+    }
+    // Untuk paket GRATIS: minta konfirmasi persyaratan dulu (sekali per browser)
+    if (target?.is_gratis) {
+      const already = typeof window !== "undefined" && localStorage.getItem("free_tryout_requirements");
+      if (!already) {
+        setPendingPaketId(paketId);
+        setReqDialogOpen(true);
+        return;
+      }
     }
     setActionId(paketId);
     // cek sesi in_progress
@@ -248,6 +260,19 @@ function PaketPage() {
         )}
       </main>
       <SiteFooter />
+      <FreeTryoutRequirementsDialog
+        open={reqDialogOpen}
+        onOpenChange={setReqDialogOpen}
+        paketJudul={paket.find((p) => p.id === pendingPaketId)?.judul}
+        onConfirmed={() => {
+          setReqDialogOpen(false);
+          if (pendingPaketId) {
+            const id = pendingPaketId;
+            setPendingPaketId(null);
+            void startTryout(id);
+          }
+        }}
+      />
     </div>
   );
 }

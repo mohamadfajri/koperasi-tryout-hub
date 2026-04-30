@@ -17,7 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Pencil, Trash2, Eye, CheckCircle2, XCircle, Users, Package, FileQuestion, Receipt, Power } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Eye, CheckCircle2, XCircle, Users, Package, FileQuestion, Receipt, Power, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, formatRupiah } from "@/lib/format";
 

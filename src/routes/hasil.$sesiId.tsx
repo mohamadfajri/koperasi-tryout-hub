@@ -171,9 +171,12 @@ function HasilPage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <p className="whitespace-pre-wrap text-sm">{j.soal.pertanyaan}</p>
+                  {j.soal.pertanyaan_gambar && (
+                    <img src={j.soal.pertanyaan_gambar} alt="Gambar soal" className="max-h-80 rounded border border-border" />
+                  )}
                   <div className="space-y-1.5">
                     {opts.map((o) =>
-                      o.t ? (
+                      o.t || o.img ? (
                         <div
                           key={o.k}
                           className={`flex items-start gap-2 rounded-md border p-2 text-sm ${
@@ -185,7 +188,10 @@ function HasilPage() {
                           }`}
                         >
                           <span className="font-bold">{o.k}.</span>
-                          <span className="flex-1">{o.t}</span>
+                          <div className="flex-1 space-y-1">
+                            {o.t && <div>{o.t}</div>}
+                            {o.img && <img src={o.img} alt={`Opsi ${o.k}`} className="max-h-40 rounded border border-border" />}
+                          </div>
                           {o.k === j.soal!.jawaban_benar && (
                             <span className="text-xs font-semibold text-success">✓ Jawaban benar</span>
                           )}
@@ -196,10 +202,13 @@ function HasilPage() {
                       ) : null
                     )}
                   </div>
-                  {j.soal.pembahasan && (
+                  {(j.soal.pembahasan || j.soal.pembahasan_gambar) && (
                     <div className="rounded-md bg-primary-soft p-3 text-sm">
                       <div className="mb-1 text-xs font-bold uppercase text-primary">Pembahasan</div>
-                      <p>{j.soal.pembahasan}</p>
+                      {j.soal.pembahasan && <p className="whitespace-pre-wrap">{j.soal.pembahasan}</p>}
+                      {j.soal.pembahasan_gambar && (
+                        <img src={j.soal.pembahasan_gambar} alt="Gambar pembahasan" className="mt-2 max-h-80 rounded border border-border" />
+                      )}
                     </div>
                   )}
                 </CardContent>

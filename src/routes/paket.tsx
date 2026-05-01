@@ -301,11 +301,8 @@ function PaketPage() {
         paketId={pendingPaketId ?? undefined}
         onConfirmed={() => {
           setReqDialogOpen(false);
-          if (pendingPaketId) {
-            const id = pendingPaketId;
-            setPendingPaketId(null);
-            void startTryout(id);
-          }
+          setPendingPaketId(null);
+          void load();
         }}
       />
     </div>

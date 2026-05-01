@@ -82,17 +82,31 @@ function PaketPage() {
     );
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     if (user) {
-      const { data: pay } = await supabase
-        .from("pembayaran")
-        .select("paket_id, status")
-        .eq("user_id", user.id);
+      const [{ data: pay }, { data: bg }] = await Promise.all([
+        supabase.from("pembayaran").select("paket_id, status").eq("user_id", user.id),
+        supabase.from("bukti_tryout_gratis").select("paket_id, status").eq("user_id", user.id),
+      ]);
       setAccess((pay as PembayaranAccess[]) ?? []);
+      setBuktiGratis((bg as BuktiGratisRow[]) ?? []);
     }
     setLoading(false);
   };
 
+  const buktiStatusFor = (paketId: string): "approved" | "pending" | "rejected" | "none" => {
+    const rows = buktiGratis.filter((b) => b.paket_id === paketId);
+    if (rows.some((r) => r.status === "approved")) return "approved";
+    if (rows.some((r) => r.status === "pending")) return "pending";
+    if (rows.some((r) => r.status === "rejected")) return "rejected";
+    return "none";
+  };
+
   const accessFor = (paketId: string, isGratis: boolean) => {
-    if (isGratis) return "free" as const;
+    if (isGratis) {
+      const s = buktiStatusFor(paketId);
+      if (s === "approved") return "free" as const;
+      if (s === "pending") return "free_pending" as const;
+      return "free_locked" as const;
+    }
     const found = access.find((a) => a.paket_id === paketId);
     if (found?.status === "approved") return "paid" as const;
     if (found?.status === "pending") return "pending" as const;

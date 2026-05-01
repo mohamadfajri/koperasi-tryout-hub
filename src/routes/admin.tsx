@@ -852,19 +852,33 @@ function BuktiGratisTab() {
                     </Badge>
                   </div>
 
-                  {b.bukti_image_url && (
-                    <button
-                      type="button"
-                      onClick={() => setPreviewUrl(b.bukti_image_url)}
-                      className="mt-3 block"
-                    >
-                      <img
-                        src={b.bukti_image_url}
-                        alt="Bukti share"
-                        className="max-h-40 rounded border border-border object-contain bg-background"
-                      />
-                    </button>
-                  )}
+                  {(() => {
+                    const buktiList: { label: string; url: string | null }[] = [
+                      { label: "Follow IG", url: b.bukti_follow_url },
+                      { label: "Share Grup", url: b.bukti_share_url ?? b.bukti_image_url },
+                      { label: "Like & Tag", url: b.bukti_like_tag_url },
+                    ];
+                    const hasAny = buktiList.some((x) => !!x.url);
+                    if (!hasAny) return null;
+                    return (
+                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        {buktiList.map((x) => (
+                          <div key={x.label} className="space-y-1">
+                            <div className="text-xs font-medium text-muted-foreground">{x.label}</div>
+                            {x.url ? (
+                              <button type="button" onClick={() => setPreviewUrl(x.url)} className="block w-full">
+                                <img src={x.url} alt={x.label} className="h-32 w-full rounded border border-border object-contain bg-background" />
+                              </button>
+                            ) : (
+                              <div className="flex h-32 items-center justify-center rounded border border-dashed border-border text-xs text-muted-foreground">
+                                tidak ada
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
 
                   <div className="mt-3 flex flex-wrap gap-2">
                     {b.status !== "approved" && (

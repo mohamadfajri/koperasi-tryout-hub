@@ -16,8 +16,8 @@ interface Props {
   paketId?: string;
 }
 
-const IG_URL = "https://instagram.com/tryoutkopdes_com";
-const IG_HANDLE = "@tryoutkopdes_com";
+const IG_URL = "https://instagram.com/tryoutkopdes";
+const IG_HANDLE = "@tryoutkopdes";
 
 type StepKey = "follow" | "share" | "like";
 const STEPS: { key: StepKey; title: string; desc: string; icon: typeof Instagram }[] = [

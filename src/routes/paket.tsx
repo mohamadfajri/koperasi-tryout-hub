@@ -33,6 +33,11 @@ interface PembayaranAccess {
   status: "pending" | "approved" | "rejected";
 }
 
+interface BuktiGratisRow {
+  paket_id: string | null;
+  status: "pending" | "approved" | "rejected";
+}
+
 interface AppSettings {
   key: string;
   tryout_enabled: boolean;

@@ -40,14 +40,33 @@ interface AppSettings {
   tryout_enabled: boolean;
 }
 
+interface Paket {
+  id: string;
+  judul: string;
+  deskripsi: string | null;
+  harga: number;
+  durasi_menit: number;
+  jumlah_soal: number;
+  max_attempts: number;
+  is_gratis: boolean;
+}
+
+interface BuktiRow {
+  paket_id: string | null;
+  status: "pending" | "approved" | "rejected";
+}
+
 function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [sesi, setSesi] = useState<Sesi[]>([]);
   const [bayar, setBayar] = useState<Bayar[]>([]);
+  const [paket, setPaket] = useState<Paket[]>([]);
+  const [bukti, setBukti] = useState<BuktiRow[]>([]);
   const [profileName, setProfileName] = useState<string>("");
   const [tryoutEnabled, setTryoutEnabled] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -60,7 +79,7 @@ function DashboardPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }] = await Promise.all([
+    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }, { data: pk }, { data: bg }] = await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
       supabase
         .from("sesi_tryout")
@@ -77,6 +96,16 @@ function DashboardPage() {
         .select("key, tryout_enabled")
         .eq("key", "global")
         .maybeSingle(),
+      supabase
+        .from("paket_tryout")
+        .select("*")
+        .eq("is_aktif", true)
+        .order("is_gratis", { ascending: false })
+        .order("harga", { ascending: true }),
+      supabase
+        .from("bukti_tryout_gratis")
+        .select("paket_id, status")
+        .eq("user_id", user!.id),
     ]);
     setProfileName(prof?.full_name ?? "");
     setSesi(
@@ -86,6 +115,8 @@ function DashboardPage() {
       })),
     );
     setBayar((b as Bayar[]) ?? []);
+    setPaket((pk as Paket[]) ?? []);
+    setBukti((bg as BuktiRow[]) ?? []);
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     setLoading(false);
   };

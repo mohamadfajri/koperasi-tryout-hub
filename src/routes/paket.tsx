@@ -265,6 +265,14 @@ function PaketPage() {
                           )}
                           {!tryoutEnabled ? "Tryout Ditutup" : !executionEnabled ? "Pengerjaan OFF" : "Mulai Tryout"}
                         </Button>
+                      ) : acc === "free_pending" ? (
+                        <Button variant="outline" disabled>
+                          <Clock className="mr-2 size-4" /> Menunggu ACC Admin
+                        </Button>
+                      ) : acc === "free_locked" ? (
+                        <Button onClick={() => startTryout(p.id)}>
+                          <Sparkles className="mr-2 size-4" /> Ikut Gratis
+                        </Button>
                       ) : acc === "pending" ? (
                         <Button variant="outline" disabled>
                           <Clock className="mr-2 size-4" /> Menunggu Verifikasi

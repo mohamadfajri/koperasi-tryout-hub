@@ -127,10 +127,16 @@ function PaketPage() {
       toast.error("Pengerjaan tryout untuk paket ini sedang ditutup admin.");
       return;
     }
-    // Untuk paket GRATIS: minta konfirmasi persyaratan dulu (sekali per browser)
+    // Untuk paket GRATIS: wajib upload bukti & disetujui admin dulu
     if (target?.is_gratis) {
-      const already = typeof window !== "undefined" && localStorage.getItem("free_tryout_requirements");
-      if (!already) {
+      const status = buktiStatusFor(paketId);
+      if (status === "approved") {
+        // lanjut start
+      } else if (status === "pending") {
+        toast.info("Bukti kamu sedang menunggu verifikasi admin. Coba lagi setelah disetujui.");
+        return;
+      } else {
+        // belum kirim atau ditolak → buka dialog
         setPendingPaketId(paketId);
         setReqDialogOpen(true);
         return;

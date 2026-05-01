@@ -6,7 +6,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trophy, Clock, FileText, Receipt } from "lucide-react";
+import { Loader2, Trophy, Clock, FileText, Receipt, FileQuestion, Timer, Sparkles, Crown, ArrowRight, PlayCircle, CheckCircle2 } from "lucide-react";
 import { formatDate, formatRupiah } from "@/lib/format";
 
 export const Route = createFileRoute("/dashboard")({

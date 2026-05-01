@@ -40,7 +40,10 @@ export type Database = {
       }
       bukti_tryout_gratis: {
         Row: {
+          bukti_follow_url: string | null
           bukti_image_url: string | null
+          bukti_like_tag_url: string | null
+          bukti_share_url: string | null
           catatan_admin: string | null
           created_at: string
           id: string
@@ -53,7 +56,10 @@ export type Database = {
           verified_by: string | null
         }
         Insert: {
+          bukti_follow_url?: string | null
           bukti_image_url?: string | null
+          bukti_like_tag_url?: string | null
+          bukti_share_url?: string | null
           catatan_admin?: string | null
           created_at?: string
           id?: string
@@ -66,7 +72,10 @@ export type Database = {
           verified_by?: string | null
         }
         Update: {
+          bukti_follow_url?: string | null
           bukti_image_url?: string | null
+          bukti_like_tag_url?: string | null
+          bukti_share_url?: string | null
           catatan_admin?: string | null
           created_at?: string
           id?: string

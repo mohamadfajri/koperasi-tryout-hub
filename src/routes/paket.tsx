@@ -33,6 +33,11 @@ interface PembayaranAccess {
   status: "pending" | "approved" | "rejected";
 }
 
+interface BuktiGratisRow {
+  paket_id: string | null;
+  status: "pending" | "approved" | "rejected";
+}
+
 interface AppSettings {
   key: string;
   tryout_enabled: boolean;
@@ -43,6 +48,7 @@ function PaketPage() {
   const navigate = useNavigate();
   const [paket, setPaket] = useState<Paket[]>([]);
   const [access, setAccess] = useState<PembayaranAccess[]>([]);
+  const [buktiGratis, setBuktiGratis] = useState<BuktiGratisRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [tryoutEnabled, setTryoutEnabled] = useState(true);
@@ -76,17 +82,31 @@ function PaketPage() {
     );
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     if (user) {
-      const { data: pay } = await supabase
-        .from("pembayaran")
-        .select("paket_id, status")
-        .eq("user_id", user.id);
+      const [{ data: pay }, { data: bg }] = await Promise.all([
+        supabase.from("pembayaran").select("paket_id, status").eq("user_id", user.id),
+        supabase.from("bukti_tryout_gratis").select("paket_id, status").eq("user_id", user.id),
+      ]);
       setAccess((pay as PembayaranAccess[]) ?? []);
+      setBuktiGratis((bg as BuktiGratisRow[]) ?? []);
     }
     setLoading(false);
   };
 
+  const buktiStatusFor = (paketId: string): "approved" | "pending" | "rejected" | "none" => {
+    const rows = buktiGratis.filter((b) => b.paket_id === paketId);
+    if (rows.some((r) => r.status === "approved")) return "approved";
+    if (rows.some((r) => r.status === "pending")) return "pending";
+    if (rows.some((r) => r.status === "rejected")) return "rejected";
+    return "none";
+  };
+
   const accessFor = (paketId: string, isGratis: boolean) => {
-    if (isGratis) return "free" as const;
+    if (isGratis) {
+      const s = buktiStatusFor(paketId);
+      if (s === "approved") return "free" as const;
+      if (s === "pending") return "free_pending" as const;
+      return "free_locked" as const;
+    }
     const found = access.find((a) => a.paket_id === paketId);
     if (found?.status === "approved") return "paid" as const;
     if (found?.status === "pending") return "pending" as const;
@@ -107,10 +127,16 @@ function PaketPage() {
       toast.error("Pengerjaan tryout untuk paket ini sedang ditutup admin.");
       return;
     }
-    // Untuk paket GRATIS: minta konfirmasi persyaratan dulu (sekali per browser)
+    // Untuk paket GRATIS: wajib upload bukti & disetujui admin dulu
     if (target?.is_gratis) {
-      const already = typeof window !== "undefined" && localStorage.getItem("free_tryout_requirements");
-      if (!already) {
+      const status = buktiStatusFor(paketId);
+      if (status === "approved") {
+        // lanjut start
+      } else if (status === "pending") {
+        toast.info("Bukti kamu sedang menunggu verifikasi admin. Coba lagi setelah disetujui.");
+        return;
+      } else {
+        // belum kirim atau ditolak → buka dialog
         setPendingPaketId(paketId);
         setReqDialogOpen(true);
         return;
@@ -239,6 +265,14 @@ function PaketPage() {
                           )}
                           {!tryoutEnabled ? "Tryout Ditutup" : !executionEnabled ? "Pengerjaan OFF" : "Mulai Tryout"}
                         </Button>
+                      ) : acc === "free_pending" ? (
+                        <Button variant="outline" disabled>
+                          <Clock className="mr-2 size-4" /> Menunggu ACC Admin
+                        </Button>
+                      ) : acc === "free_locked" ? (
+                        <Button onClick={() => startTryout(p.id)}>
+                          <Sparkles className="mr-2 size-4" /> Ikut Gratis
+                        </Button>
                       ) : acc === "pending" ? (
                         <Button variant="outline" disabled>
                           <Clock className="mr-2 size-4" /> Menunggu Verifikasi
@@ -267,11 +301,8 @@ function PaketPage() {
         paketId={pendingPaketId ?? undefined}
         onConfirmed={() => {
           setReqDialogOpen(false);
-          if (pendingPaketId) {
-            const id = pendingPaketId;
-            setPendingPaketId(null);
-            void startTryout(id);
-          }
+          setPendingPaketId(null);
+          void load();
         }}
       />
     </div>

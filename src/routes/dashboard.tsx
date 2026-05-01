@@ -6,7 +6,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trophy, Clock, FileText, Receipt } from "lucide-react";
+import { Loader2, Trophy, Clock, FileText, Receipt, FileQuestion, Timer, Sparkles, Crown, ArrowRight, PlayCircle, CheckCircle2 } from "lucide-react";
 import { formatDate, formatRupiah } from "@/lib/format";
 
 export const Route = createFileRoute("/dashboard")({
@@ -40,14 +40,33 @@ interface AppSettings {
   tryout_enabled: boolean;
 }
 
+interface Paket {
+  id: string;
+  judul: string;
+  deskripsi: string | null;
+  harga: number;
+  durasi_menit: number;
+  jumlah_soal: number;
+  max_attempts: number;
+  is_gratis: boolean;
+}
+
+interface BuktiRow {
+  paket_id: string | null;
+  status: "pending" | "approved" | "rejected";
+}
+
 function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [sesi, setSesi] = useState<Sesi[]>([]);
   const [bayar, setBayar] = useState<Bayar[]>([]);
+  const [paket, setPaket] = useState<Paket[]>([]);
+  const [bukti, setBukti] = useState<BuktiRow[]>([]);
   const [profileName, setProfileName] = useState<string>("");
   const [tryoutEnabled, setTryoutEnabled] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -60,7 +79,7 @@ function DashboardPage() {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }] = await Promise.all([
+    const [{ data: prof }, { data: s }, { data: b }, { data: appSettings }, { data: pk }, { data: bg }] = await Promise.all([
       supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
       supabase
         .from("sesi_tryout")
@@ -77,6 +96,16 @@ function DashboardPage() {
         .select("key, tryout_enabled")
         .eq("key", "global")
         .maybeSingle(),
+      supabase
+        .from("paket_tryout")
+        .select("*")
+        .eq("is_aktif", true)
+        .order("is_gratis", { ascending: false })
+        .order("harga", { ascending: true }),
+      supabase
+        .from("bukti_tryout_gratis")
+        .select("paket_id, status")
+        .eq("user_id", user!.id),
     ]);
     setProfileName(prof?.full_name ?? "");
     setSesi(
@@ -86,6 +115,8 @@ function DashboardPage() {
       })),
     );
     setBayar((b as Bayar[]) ?? []);
+    setPaket((pk as Paket[]) ?? []);
+    setBukti((bg as BuktiRow[]) ?? []);
     setTryoutEnabled((appSettings as AppSettings | null)?.tryout_enabled ?? true);
     setLoading(false);
   };
@@ -104,6 +135,63 @@ function DashboardPage() {
     completed.length > 0
       ? Math.round(completed.reduce((sum, x) => sum + (x.skor ?? 0), 0) / completed.length)
       : 0;
+
+  // Akses paket: gratis (bukti approved) atau berbayar (pembayaran approved)
+  const approvedFreeIds = new Set(
+    bukti.filter((x) => x.status === "approved" && x.paket_id).map((x) => x.paket_id as string),
+  );
+  const approvedPaidIds = new Set(
+    bayar.filter((x) => x.status === "approved").map((x) => x.paket_id),
+  );
+  const myPaket = paket.filter(
+    (p) => (p.is_gratis && approvedFreeIds.has(p.id)) || (!p.is_gratis && approvedPaidIds.has(p.id)),
+  );
+  const inProgressByPaket: Record<string, Sesi | undefined> = {};
+  inprogress.forEach((s) => {
+    if (!inProgressByPaket[s.paket_id]) inProgressByPaket[s.paket_id] = s;
+  });
+  const lastCompletedByPaket: Record<string, Sesi | undefined> = {};
+  completed.forEach((s) => {
+    if (!lastCompletedByPaket[s.paket_id]) lastCompletedByPaket[s.paket_id] = s;
+  });
+  const attemptsByPaket: Record<string, number> = {};
+  sesi.forEach((s) => {
+    if (s.status === "completed" || s.status === "abandoned") {
+      attemptsByPaket[s.paket_id] = (attemptsByPaket[s.paket_id] ?? 0) + 1;
+    }
+  });
+
+  // Upsell: user pernah selesai paket gratis tapi belum punya akses berbayar
+  const hasCompletedFree = completed.some((s) =>
+    paket.find((p) => p.id === s.paket_id)?.is_gratis,
+  );
+  const hasAnyPaid = approvedPaidIds.size > 0;
+  const showUpsell = hasCompletedFree && !hasAnyPaid;
+  const premiumPaket = paket.filter((p) => !p.is_gratis);
+
+  const startTryout = async (paketId: string) => {
+    if (!tryoutEnabled) return;
+    setActionId(paketId);
+    const target = paket.find((p) => p.id === paketId);
+    const existing = inProgressByPaket[paketId];
+    if (existing) {
+      navigate({ to: "/tryout/$sesiId", params: { sesiId: existing.id } });
+      return;
+    }
+    if (target && target.max_attempts > 0 && (attemptsByPaket[paketId] ?? 0) >= target.max_attempts) {
+      setActionId(null);
+      return;
+    }
+    const { data: newSesi, error } = await supabase
+      .from("sesi_tryout")
+      .insert({ user_id: user!.id, paket_id: paketId })
+      .select("id")
+      .single();
+    setActionId(null);
+    if (!error && newSesi) {
+      navigate({ to: "/tryout/$sesiId", params: { sesiId: newSesi.id } });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -157,37 +245,160 @@ function DashboardPage() {
           </Card>
         </div>
 
-        {/* Sesi in progress */}
-        {inprogress.length > 0 && (
-          <Card className="mb-6 border-warning/40 bg-warning/5">
-            <CardHeader>
-              <CardTitle className="text-base">Lanjutkan Tryout</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {inprogress.map((s) => (
-                <div key={s.id} className="flex items-center justify-between rounded-md bg-card p-3">
-                  <div>
-                    <div className="font-semibold">{s.paket_tryout?.judul}</div>
-                    <div className="text-xs text-muted-foreground">
-                      Mulai {formatDate(s.waktu_mulai)}
-                    </div>
-                    {s.execution_enabled === false && (
-                      <div className="mt-1 text-xs text-warning-foreground">
-                        Pengerjaan paket ini sedang ditutup admin.
-                      </div>
-                    )}
-                  </div>
-                  <Button asChild size="sm" disabled={!tryoutEnabled || s.execution_enabled === false}>
-                    <Link to="/tryout/$sesiId" params={{ sesiId: s.id }}>
-                      {tryoutEnabled
-                        ? s.execution_enabled === false
-                          ? "Pengerjaan OFF"
-                          : "Lanjutkan"
-                        : "Ditutup Sementara"}
-                    </Link>
-                  </Button>
+        {/* Tryout Saya */}
+        <div className="mb-8">
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <h2 className="font-serif text-xl font-bold sm:text-2xl">Tryout Saya</h2>
+              <p className="text-sm text-muted-foreground">Paket yang sudah bisa kamu kerjakan.</p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/paket">
+                Cari Paket Lain <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {myPaket.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="rounded-full bg-primary-soft p-3 text-primary">
+                  <Sparkles className="size-6" />
                 </div>
-              ))}
+                <div>
+                  <div className="font-semibold">Belum punya tryout aktif</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Mulai dari paket gratis dulu, atau langsung beli premium.
+                  </p>
+                </div>
+                <Button asChild>
+                  <Link to="/paket">Pilih Paket</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {myPaket.map((p) => {
+                const inProg = inProgressByPaket[p.id];
+                const lastDone = lastCompletedByPaket[p.id];
+                const attempts = attemptsByPaket[p.id] ?? 0;
+                const limitReached = p.max_attempts > 0 && attempts >= p.max_attempts;
+                const executionDisabled = p.max_attempts < 0;
+                return (
+                  <Card key={p.id} className="overflow-hidden border-2 border-primary/20 shadow-sm transition hover:shadow-md">
+                    <CardHeader className="pb-3 text-center">
+                      <CardTitle className="font-serif text-base font-bold uppercase leading-tight sm:text-lg">
+                        {p.judul}
+                      </CardTitle>
+                      <div className="mt-1 flex justify-center">
+                        {p.is_gratis ? (
+                          <Badge className="bg-accent text-accent-foreground">
+                            <Sparkles className="mr-1 size-3" /> GRATIS
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-primary text-primary-foreground">
+                            <Crown className="mr-1 size-3" /> PREMIUM
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <FileQuestion className="size-4 text-primary" />
+                          <span className="w-20 font-medium">Jumlah</span>
+                          <span>:</span>
+                          <span className="ml-auto sm:ml-2">{p.jumlah_soal} Soal</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Timer className="size-4 text-primary" />
+                          <span className="w-20 font-medium">Durasi</span>
+                          <span>:</span>
+                          <span className="ml-auto sm:ml-2">{p.durasi_menit} Menit</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Trophy className="size-4 text-primary" />
+                          <span className="w-20 font-medium">Skor</span>
+                          <span>:</span>
+                          <span className="ml-auto font-semibold sm:ml-2">
+                            {lastDone?.skor != null ? lastDone.skor : "—"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {limitReached ? (
+                        <div className="rounded-md bg-muted px-3 py-2 text-xs italic text-muted-foreground">
+                          Batas pengerjaan tercapai ({attempts}/{p.max_attempts}).
+                        </div>
+                      ) : (
+                        <div className="rounded-md bg-primary-soft px-3 py-2 text-xs italic text-primary">
+                          {inProg
+                            ? "Ada sesi yang belum selesai — lanjutkan!"
+                            : p.max_attempts > 0
+                            ? `Sisa pengerjaan: ${p.max_attempts - attempts}× dari ${p.max_attempts}`
+                            : "Bisa dikerjakan kapan saja."}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          className="w-full"
+                          disabled={!tryoutEnabled || executionDisabled || limitReached || actionId === p.id}
+                          onClick={() => startTryout(p.id)}
+                        >
+                          {actionId === p.id ? (
+                            <Loader2 className="mr-2 size-4 animate-spin" />
+                          ) : inProg ? (
+                            <PlayCircle className="mr-2 size-4" />
+                          ) : (
+                            <CheckCircle2 className="mr-2 size-4" />
+                          )}
+                          {!tryoutEnabled
+                            ? "Tryout Ditutup"
+                            : executionDisabled
+                            ? "Pengerjaan OFF"
+                            : limitReached
+                            ? "Selesai"
+                            : inProg
+                            ? "Lanjutkan"
+                            : "Kerjakan Sekarang"}
+                        </Button>
+                        {lastDone && (
+                          <Button asChild variant="outline" className="w-full">
+                            <Link to="/hasil/$sesiId" params={{ sesiId: lastDone.id }}>
+                              Lihat Hasil
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Upsell setelah selesai gratis */}
+        {showUpsell && premiumPaket.length > 0 && (
+          <Card className="mb-6 overflow-hidden border-primary/40 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-primary p-2.5 text-primary-foreground">
+                  <Crown className="size-5" />
+                </div>
+                <div>
+                  <div className="font-serif text-lg font-bold">Sudah cobain yang gratis? Saatnya naik level! 🚀</div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Akses paket premium dengan soal lebih banyak, pembahasan lengkap, dan ranking eksklusif.
+                  </p>
+                </div>
+              </div>
+              <Button asChild size="lg" className="shrink-0">
+                <Link to="/paket">
+                  Lihat Premium <ArrowRight className="ml-2 size-4" />
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         )}

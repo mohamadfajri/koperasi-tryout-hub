@@ -48,6 +48,7 @@ function PaketPage() {
   const navigate = useNavigate();
   const [paket, setPaket] = useState<Paket[]>([]);
   const [access, setAccess] = useState<PembayaranAccess[]>([]);
+  const [buktiGratis, setBuktiGratis] = useState<BuktiGratisRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [tryoutEnabled, setTryoutEnabled] = useState(true);

@@ -737,6 +737,9 @@ interface BuktiGratis {
   paket_id: string | null;
   ig_username: string;
   bukti_image_url: string | null;
+  bukti_follow_url: string | null;
+  bukti_share_url: string | null;
+  bukti_like_tag_url: string | null;
   status: string;
   catatan_admin: string | null;
   created_at: string;

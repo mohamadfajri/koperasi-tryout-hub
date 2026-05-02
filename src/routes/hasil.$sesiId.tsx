@@ -75,12 +75,53 @@ function HasilPage() {
       .single();
     setSesi(s as SesiDetail);
 
+    const sesiData = s as SesiDetail | null;
+
+    // Ambil SEMUA soal pada paket ini (bukan hanya yang dijawab user)
+    const { data: allSoal } = await supabase
+      .from("soal")
+      .select("id, nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan, pertanyaan_gambar, opsi_a_gambar, opsi_b_gambar, opsi_c_gambar, opsi_d_gambar, opsi_e_gambar, pembahasan_gambar")
+      .eq("paket_id", sesiData?.paket_id ?? "")
+      .order("nomor", { ascending: true });
+
     const { data: jw } = await supabase
       .from("jawaban_user")
-      .select("soal_id, jawaban, is_benar, soal:soal_id(nomor, pertanyaan, opsi_a, opsi_b, opsi_c, opsi_d, opsi_e, jawaban_benar, pembahasan, pertanyaan_gambar, opsi_a_gambar, opsi_b_gambar, opsi_c_gambar, opsi_d_gambar, opsi_e_gambar, pembahasan_gambar)")
+      .select("soal_id, jawaban, is_benar")
       .eq("sesi_id", sesiId);
-    const sorted = (jw as any[])?.sort((a, b) => (a.soal?.nomor ?? 0) - (b.soal?.nomor ?? 0)) ?? [];
-    setJawaban(sorted as JawabanDetail[]);
+
+    const jwMap = new Map<string, { jawaban: string | null; is_benar: boolean | null }>();
+    (jw as any[] ?? []).forEach((j) => {
+      jwMap.set(j.soal_id, { jawaban: j.jawaban, is_benar: j.is_benar });
+    });
+
+    const merged: JawabanDetail[] = (allSoal as any[] ?? []).map((soal) => {
+      const ans = jwMap.get(soal.id);
+      return {
+        soal_id: soal.id,
+        jawaban: ans?.jawaban ?? null,
+        is_benar: ans?.is_benar ?? null,
+        soal: {
+          nomor: soal.nomor,
+          pertanyaan: soal.pertanyaan,
+          opsi_a: soal.opsi_a,
+          opsi_b: soal.opsi_b,
+          opsi_c: soal.opsi_c,
+          opsi_d: soal.opsi_d,
+          opsi_e: soal.opsi_e,
+          jawaban_benar: soal.jawaban_benar,
+          pembahasan: soal.pembahasan,
+          pertanyaan_gambar: soal.pertanyaan_gambar,
+          opsi_a_gambar: soal.opsi_a_gambar,
+          opsi_b_gambar: soal.opsi_b_gambar,
+          opsi_c_gambar: soal.opsi_c_gambar,
+          opsi_d_gambar: soal.opsi_d_gambar,
+          opsi_e_gambar: soal.opsi_e_gambar,
+          pembahasan_gambar: soal.pembahasan_gambar,
+        },
+      };
+    });
+
+    setJawaban(merged);
     setLoading(false);
   };
 

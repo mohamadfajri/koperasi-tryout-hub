@@ -23,13 +23,17 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2" aria-label="TryoutKopdes.com">
+        <Link to="/" className="flex items-center gap-2.5" aria-label="TryoutKopdes.com">
           <img
-            src="/tryoutkopdes-logo.png"
-            alt="TryoutKopdes.com"
-            className="h-9 w-auto sm:h-10 object-contain"
+            src="/tryoutkopdes-icon.png"
+            alt=""
+            className="h-9 w-9 sm:h-10 sm:w-10 object-contain"
           />
-          <span className="sr-only">TryoutKopdes.com</span>
+          <span className="text-lg sm:text-xl font-extrabold tracking-tight leading-none">
+            <span className="text-foreground">TRYOUT</span>
+            <span className="text-primary">KOPDES</span>
+            <span className="text-foreground">.COM</span>
+          </span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">
@@ -127,14 +131,21 @@ export function SiteFooter() {
     <footer className="border-t border-border/60 bg-card mt-16">
       <div className="container mx-auto px-4 py-10 sm:px-6">
         <div className="flex flex-col items-center justify-between gap-4 text-center md:flex-row md:text-left">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <img
-              src="/tryoutkopdes-logo.png"
-              alt="TryoutKopdes.com"
-              className="h-10 w-auto object-contain"
+              src="/tryoutkopdes-icon.png"
+              alt=""
+              className="h-10 w-10 object-contain"
             />
-            <div className="text-xs text-muted-foreground">
-              Platform Tryout CBT Koperasi Desa Merah Putih
+            <div className="leading-tight">
+              <div className="text-base font-extrabold tracking-tight">
+                <span className="text-foreground">TRYOUT</span>
+                <span className="text-primary">KOPDES</span>
+                <span className="text-foreground">.COM</span>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Platform Tryout CBT Koperasi Desa Merah Putih
+              </div>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">

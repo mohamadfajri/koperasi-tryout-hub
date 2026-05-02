@@ -64,11 +64,11 @@ function HomePage() {
               Platform tryout CBT khusus Koperasi Desa
             </div>
             <h1 className="font-serif text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl">
-              Tumbuh Bersama, <span className="text-primary">Maju Bersama</span> Lewat Tryout CBT.
+              Siap Lolos Seleksi <span className="text-primary">Kopdes Merah Putih?</span> Mulai dari Sini.
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Asah kemampuanmu dengan latihan soal terstruktur khusus Koperasi Desa Merah Putih. Coba paket
-              gratis dulu, baru lanjut ke tryout lengkap.
+              Latihan soal CBT yang nyata, terarah, dan ngena buat persiapan seleksi Koperasi Desa Merah Putih.
+              Cobain dulu paket gratisnya, kalau cocok lanjut ke tryout lengkap biar makin pede pas hari-H.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg" className="gap-2">

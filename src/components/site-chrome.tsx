@@ -138,7 +138,7 @@ export function SiteFooter() {
             </div>
             <div>
               <div className="font-serif font-bold">Koperasi Desa Merah Putih</div>
-              <div className="text-xs text-muted-foreground">Tumbuh bersama, maju bersama</div>
+              <div className="text-xs text-muted-foreground">TryoutKopdes.com</div>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">

@@ -97,12 +97,17 @@ function AuthPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-warm px-4 py-10">
       <div className="w-full max-w-md">
-        <Link to="/" className="mb-6 flex items-center justify-center" aria-label="TryoutKopdes.com">
+        <Link to="/" className="mb-6 flex items-center justify-center gap-3" aria-label="TryoutKopdes.com">
           <img
-            src="/tryoutkopdes-logo.png"
-            alt="TryoutKopdes.com"
-            className="h-12 w-auto object-contain sm:h-14"
+            src="/tryoutkopdes-icon.png"
+            alt=""
+            className="h-14 w-14 object-contain sm:h-16 sm:w-16"
           />
+          <span className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none">
+            <span className="text-foreground">TRYOUT</span>
+            <span className="text-primary">KOPDES</span>
+            <span className="text-foreground">.COM</span>
+          </span>
         </Link>
 
         <Card>

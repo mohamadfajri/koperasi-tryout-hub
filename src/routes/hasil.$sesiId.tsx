@@ -190,6 +190,56 @@ function HasilPage() {
           </CardContent>
         </Card>
 
+        {/* Upsell premium setelah tryout gratis */}
+        {sesi.paket_tryout?.is_gratis && premiumPakets.length > 0 && (
+          <Card className="mb-8 overflow-hidden border-primary/30 bg-gradient-to-br from-primary/5 via-card to-accent/5">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1">
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    <Sparkles className="size-3.5" />
+                    Selamat! Tryout gratis selesai
+                  </div>
+                  <h2 className="font-serif text-xl font-bold sm:text-2xl">
+                    Lanjutkan ke Tryout Premium
+                  </h2>
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    Materi FR CAT terbaru, soal lebih lengkap, dan prediksi terakurat untuk persiapan
+                    seleksi Kopdes Merah Putih.
+                  </p>
+                </div>
+                <Button asChild size="lg" className="shrink-0 gap-2">
+                  <Link to="/paket">
+                    Lihat Paket Premium <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {premiumPakets.map((p) => (
+                  <Link
+                    key={p.id}
+                    to="/bayar/$paketId"
+                    params={{ paketId: p.id }}
+                    className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className="line-clamp-2 font-semibold leading-tight">{p.judul}</div>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{p.jumlah_soal} soal</span>
+                      <span>•</span>
+                      <span>{p.durasi_menit} mnt</span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="text-lg font-bold text-primary">{formatRupiah(p.harga)}</div>
+                      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Pembahasan */}
         <h2 className="mb-4 font-serif text-xl font-bold">Pembahasan</h2>
         <div className="space-y-4">

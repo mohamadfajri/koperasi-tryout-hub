@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trophy, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { Loader2, Trophy, CheckCircle2, XCircle, MinusCircle, Sparkles, ArrowRight } from "lucide-react";
+import { formatRupiah } from "@/lib/format";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/hasil/$sesiId")({
@@ -22,7 +23,7 @@ interface SesiDetail {
   jumlah_benar: number | null;
   jumlah_salah: number | null;
   status: string;
-  paket_tryout: { judul: string; jumlah_soal: number } | null;
+  paket_tryout: { judul: string; jumlah_soal: number; is_gratis: boolean } | null;
 }
 
 interface JawabanDetail {
@@ -55,6 +56,7 @@ function HasilPage() {
   const navigate = useNavigate();
   const [sesi, setSesi] = useState<SesiDetail | null>(null);
   const [jawaban, setJawaban] = useState<JawabanDetail[]>([]);
+  const [premiumPakets, setPremiumPakets] = useState<Array<{ id: string; judul: string; harga: number; jumlah_soal: number; durasi_menit: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ function HasilPage() {
     setLoading(true);
     const { data: s } = await supabase
       .from("sesi_tryout")
-      .select("*, paket_tryout(judul, jumlah_soal)")
+      .select("*, paket_tryout(judul, jumlah_soal, is_gratis)")
       .eq("id", sesiId)
       .single();
     setSesi(s as SesiDetail);
@@ -122,6 +124,19 @@ function HasilPage() {
     });
 
     setJawaban(merged);
+
+    // Jika paket gratis & sesi selesai, ambil paket premium untuk upsell
+    if ((sesiData as any)?.paket_tryout?.is_gratis && sesiData?.status === "selesai") {
+      const { data: premium } = await supabase
+        .from("paket_tryout")
+        .select("id, judul, harga, jumlah_soal, durasi_menit")
+        .eq("is_aktif", true)
+        .eq("is_gratis", false)
+        .order("harga", { ascending: true })
+        .limit(3);
+      setPremiumPakets((premium as any[]) ?? []);
+    }
+
     setLoading(false);
   };
 
@@ -174,6 +189,56 @@ function HasilPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Upsell premium setelah tryout gratis */}
+        {sesi.paket_tryout?.is_gratis && premiumPakets.length > 0 && (
+          <Card className="mb-8 overflow-hidden border-primary/30 bg-gradient-to-br from-primary/5 via-card to-accent/5">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex-1">
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    <Sparkles className="size-3.5" />
+                    Selamat! Tryout gratis selesai
+                  </div>
+                  <h2 className="font-serif text-xl font-bold sm:text-2xl">
+                    Lanjutkan ke Tryout Premium
+                  </h2>
+                  <p className="mt-1.5 text-sm text-muted-foreground">
+                    Materi FR CAT terbaru, soal lebih lengkap, dan prediksi terakurat untuk persiapan
+                    seleksi Kopdes Merah Putih.
+                  </p>
+                </div>
+                <Button asChild size="lg" className="shrink-0 gap-2">
+                  <Link to="/paket">
+                    Lihat Paket Premium <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {premiumPakets.map((p) => (
+                  <Link
+                    key={p.id}
+                    to="/bayar/$paketId"
+                    params={{ paketId: p.id }}
+                    className="group flex flex-col rounded-xl border border-border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className="line-clamp-2 font-semibold leading-tight">{p.judul}</div>
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{p.jumlah_soal} soal</span>
+                      <span>•</span>
+                      <span>{p.durasi_menit} mnt</span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="text-lg font-bold text-primary">{formatRupiah(p.harga)}</div>
+                      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Pembahasan */}
         <h2 className="mb-4 font-serif text-xl font-bold">Pembahasan</h2>

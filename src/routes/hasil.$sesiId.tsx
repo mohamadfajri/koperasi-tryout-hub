@@ -5,7 +5,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Trophy, CheckCircle2, XCircle, MinusCircle } from "lucide-react";
+import { Loader2, Trophy, CheckCircle2, XCircle, MinusCircle, Sparkles, ArrowRight } from "lucide-react";
+import { formatRupiah } from "@/lib/format";
 import { formatDate } from "@/lib/format";
 
 export const Route = createFileRoute("/hasil/$sesiId")({
@@ -22,7 +23,7 @@ interface SesiDetail {
   jumlah_benar: number | null;
   jumlah_salah: number | null;
   status: string;
-  paket_tryout: { judul: string; jumlah_soal: number } | null;
+  paket_tryout: { judul: string; jumlah_soal: number; is_gratis: boolean } | null;
 }
 
 interface JawabanDetail {
@@ -70,7 +71,7 @@ function HasilPage() {
     setLoading(true);
     const { data: s } = await supabase
       .from("sesi_tryout")
-      .select("*, paket_tryout(judul, jumlah_soal)")
+      .select("*, paket_tryout(judul, jumlah_soal, is_gratis)")
       .eq("id", sesiId)
       .single();
     setSesi(s as SesiDetail);

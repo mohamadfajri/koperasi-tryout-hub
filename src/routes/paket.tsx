@@ -6,7 +6,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, FileQuestion, Loader2, Lock, Sparkles } from "lucide-react";
+import { BookOpenCheck, CheckCircle2, Clock, FileQuestion, GraduationCap, Loader2, Lock, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/format";
 import { FreeTryoutRequirementsDialog } from "@/components/free-tryout-requirements-dialog";

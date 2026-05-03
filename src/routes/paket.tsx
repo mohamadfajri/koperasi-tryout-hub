@@ -6,7 +6,7 @@ import { SiteHeader, SiteFooter } from "@/components/site-chrome";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, FileQuestion, Loader2, Lock, Sparkles } from "lucide-react";
+import { BookOpenCheck, CheckCircle2, Clock, FileQuestion, GraduationCap, Loader2, Lock, Sparkles, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { formatRupiah } from "@/lib/format";
 import { FreeTryoutRequirementsDialog } from "@/components/free-tryout-requirements-dialog";
@@ -213,42 +213,72 @@ function PaketPage() {
               return (
                 <Card
                   key={p.id}
-                  className={p.is_gratis ? "border-accent/40" : "border-primary/30"}
+                  className={`group relative flex flex-col overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl ${
+                    p.is_gratis ? "border-accent/40" : "border-primary/30"
+                  }`}
                 >
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <CardTitle className="font-serif text-xl">{p.judul}</CardTitle>
-                        <CardDescription className="mt-1">{p.deskripsi}</CardDescription>
-                      </div>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        {p.is_gratis ? (
-                          <Badge className="bg-accent text-accent-foreground">
-                            <Sparkles className="mr-1 size-3" /> GRATIS
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="border-primary text-primary">
-                            PREMIUM
-                          </Badge>
-                        )}
-                        {!executionEnabled && (
-                          <Badge variant="secondary">Pengerjaan Ditutup</Badge>
-                        )}
+                  {/* Visual header / cover */}
+                  <div
+                    className={`relative h-32 w-full overflow-hidden ${
+                      p.is_gratis ? "bg-gradient-to-br from-accent/25 via-accent/10 to-background" : "bg-gradient-to-br from-primary/20 via-primary-soft to-background"
+                    }`}
+                  >
+                    <div className="absolute inset-0 opacity-[0.07]" style={{
+                      backgroundImage: "radial-gradient(circle at 20% 20%, currentColor 1px, transparent 1px), radial-gradient(circle at 80% 60%, currentColor 1px, transparent 1px)",
+                      backgroundSize: "24px 24px",
+                    }} />
+                    <div className="absolute left-5 top-5">
+                      <div className={`flex size-14 items-center justify-center rounded-2xl shadow-md ring-1 ring-border/50 ${
+                        p.is_gratis ? "bg-accent text-accent-foreground" : "bg-primary text-primary-foreground"
+                      }`}>
+                        {p.is_gratis ? <GraduationCap className="size-7" /> : <Trophy className="size-7" />}
                       </div>
                     </div>
+                    <div className="absolute right-4 top-4 flex flex-wrap justify-end gap-2">
+                      {p.is_gratis ? (
+                        <Badge className="bg-accent text-accent-foreground shadow">
+                          <Sparkles className="mr-1 size-3" /> GRATIS
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-primary text-primary-foreground shadow">
+                          <BookOpenCheck className="mr-1 size-3" /> PREMIUM
+                        </Badge>
+                      )}
+                      {!executionEnabled && (
+                        <Badge variant="secondary">Pengerjaan Ditutup</Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <CardHeader className="pb-3">
+                    <CardTitle className="font-serif text-xl leading-snug">{p.judul}</CardTitle>
+                    {p.deskripsi && (
+                      <CardDescription className="mt-1.5 line-clamp-2">{p.deskripsi}</CardDescription>
+                    )}
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <FileQuestion className="size-4" /> {p.jumlah_soal} soal
+
+                  <CardContent className="flex flex-1 flex-col gap-4">
+                    {/* Info pills */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                        <FileQuestion className="size-4 text-primary" />
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Soal</div>
+                          <div className="font-semibold leading-tight">{p.jumlah_soal}</div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="size-4" /> {p.durasi_menit} menit
+                      <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                        <Clock className="size-4 text-primary" />
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Durasi</div>
+                          <div className="font-semibold leading-tight">{p.durasi_menit} mnt</div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-end justify-between border-t border-border pt-4">
+                    <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-4">
                       <div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Harga</div>
                         {p.is_gratis ? (
                           <div className="text-2xl font-bold text-accent">Rp 0</div>
                         ) : (

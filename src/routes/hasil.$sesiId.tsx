@@ -56,6 +56,7 @@ function HasilPage() {
   const navigate = useNavigate();
   const [sesi, setSesi] = useState<SesiDetail | null>(null);
   const [jawaban, setJawaban] = useState<JawabanDetail[]>([]);
+  const [premiumPakets, setPremiumPakets] = useState<Array<{ id: string; judul: string; harga: number; jumlah_soal: number; durasi_menit: number }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -123,6 +124,19 @@ function HasilPage() {
     });
 
     setJawaban(merged);
+
+    // Jika paket gratis & sesi selesai, ambil paket premium untuk upsell
+    if ((sesiData as any)?.paket_tryout?.is_gratis && sesiData?.status === "selesai") {
+      const { data: premium } = await supabase
+        .from("paket_tryout")
+        .select("id, judul, harga, jumlah_soal, durasi_menit")
+        .eq("is_aktif", true)
+        .eq("is_gratis", false)
+        .order("harga", { ascending: true })
+        .limit(3);
+      setPremiumPakets((premium as any[]) ?? []);
+    }
+
     setLoading(false);
   };
 

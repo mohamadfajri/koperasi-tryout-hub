@@ -3,9 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { X, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const STORAGE_KEY = "promo-premium-dismissed-at";
-const SHOW_AFTER_MS = 4000; // tampilkan setelah 4 detik
-const SNOOZE_MS = 1000 * 60 * 60 * 12; // tampil lagi setelah 12 jam
+const MINIMIZED_KEY = "promo-premium-minimized";
+const SHOW_AFTER_MS = 2000;
 
 export function PromoPremiumPopup() {
   const [open, setOpen] = useState(false);
@@ -13,8 +12,9 @@ export function PromoPremiumPopup() {
 
   useEffect(() => {
     try {
-      const dismissed = localStorage.getItem(STORAGE_KEY);
-      if (dismissed && Date.now() - Number(dismissed) < SNOOZE_MS) return;
+      if (localStorage.getItem(MINIMIZED_KEY) === "1") {
+        setMinimized(true);
+      }
     } catch {
       // ignore
     }
@@ -22,10 +22,19 @@ export function PromoPremiumPopup() {
     return () => clearTimeout(t);
   }, []);
 
-  const dismiss = () => {
-    setOpen(false);
+  const minimize = () => {
+    setMinimized(true);
     try {
-      localStorage.setItem(STORAGE_KEY, String(Date.now()));
+      localStorage.setItem(MINIMIZED_KEY, "1");
+    } catch {
+      // ignore
+    }
+  };
+
+  const expand = () => {
+    setMinimized(false);
+    try {
+      localStorage.removeItem(MINIMIZED_KEY);
     } catch {
       // ignore
     }
@@ -33,11 +42,11 @@ export function PromoPremiumPopup() {
 
   if (!open) return null;
 
-  // Versi minimized (chip kecil) supaya tidak mengganggu
+  // Versi minimized (chip kecil) — satu-satunya cara menyembunyikan banner
   if (minimized) {
     return (
       <button
-        onClick={() => setMinimized(false)}
+        onClick={expand}
         className={cn(
           "fixed z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-lg",
           "bottom-20 right-4 md:bottom-6 md:right-6",
@@ -56,31 +65,21 @@ export function PromoPremiumPopup() {
       aria-label="Promo Tryout Premium"
       className={cn(
         "fixed z-40 animate-in fade-in slide-in-from-bottom-3 duration-300",
-        // Mobile: di atas bottom-nav, full-width dengan margin
         "bottom-20 left-3 right-3",
-        // Desktop: pojok kanan bawah, lebar tetap
         "md:bottom-6 md:right-6 md:left-auto md:w-[380px]",
       )}
     >
       <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-card shadow-2xl">
-        {/* Tombol close */}
+        {/* Tombol minimize (X) — banner tidak bisa ditutup permanen, hanya diminimize */}
         <button
-          onClick={dismiss}
-          aria-label="Tutup promo"
+          onClick={minimize}
+          aria-label="Kecilkan promo"
           className="absolute right-2 top-2 z-10 rounded-full bg-background/80 p-1.5 text-foreground/70 backdrop-blur transition hover:bg-background hover:text-foreground"
         >
           <X className="size-4" />
         </button>
-        {/* Tombol minimize */}
-        <button
-          onClick={() => setMinimized(true)}
-          aria-label="Kecilkan promo"
-          className="absolute right-10 top-2 z-10 rounded-full bg-background/80 px-2 py-0.5 text-[11px] font-medium text-foreground/70 backdrop-blur transition hover:bg-background hover:text-foreground"
-        >
-          –
-        </button>
 
-        <Link to="/paket" className="block" onClick={() => setOpen(false)}>
+        <Link to="/paket" className="block">
           <img
             src="/promo-premium-banner.png"
             alt="Tryout Premium berbasis tes asli, hanya 20K"

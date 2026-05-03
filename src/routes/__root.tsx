@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/auth-context";
+import { PromoPremiumPopup } from "@/components/promo-premium-popup";
 
 function NotFoundComponent() {
   return (
@@ -33,6 +34,7 @@ function RootComponent() {
   return (
     <AuthProvider>
       <Outlet />
+      <PromoPremiumPopup />
       <Toaster richColors position="top-center" />
     </AuthProvider>
   );
